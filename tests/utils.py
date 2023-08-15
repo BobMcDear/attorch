@@ -48,7 +48,7 @@ def default_shapes(min_dim: int = 0, max_dim: int = 4) -> List[Tuple[int, ...]]:
               (64, 64, 56, 56),
               (256, 128, 28, 28),
               (256, 2048, 7, 7)]
-    return filter(lambda shape: min_dim <= len(shape) <= max_dim, shapes)
+    return list(filter(lambda shape: min_dim <= len(shape) <= max_dim, shapes))
 
 
 def create_input(
