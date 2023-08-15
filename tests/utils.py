@@ -94,3 +94,23 @@ def create_input_like(
         torch.manual_seed(seed)
 
     return torch.randn_like(input, requires_grad=requires_grad)
+
+
+def assert_close(
+    *tensor_pairs: Tuple[Tensor, Tensor],
+    rtol: Optional[float] = None,
+    atol: Optional[float] = None,
+    ) -> None:
+    """
+    Asserts that the two tensors in each pair of tensor_pairs are close.
+    See also torch.testing.assert_close.
+
+    Args:
+        *tensor_pairs: Pairs of tensors that are asserted to be close.
+        rtol: Relative tolerance. If specified, atol must also be specified.
+            Otherwise, it is selected according to the tensors' dtypes.
+        atol: Absolute tolerance. If specified, rtol must also be specified.
+            Otherwise, it is selected according to the tensors' dtypes.
+    """
+    for pair in tensor_pairs:
+        torch.testing.assert_close(*pair, rtol=rtol, atol=atol)
