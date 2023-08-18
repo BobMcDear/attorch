@@ -6,9 +6,9 @@ Linear layer with fused activation with PyTorch autodiff support.
 from typing import Optional, Tuple
 
 import torch
-import triton
 from torch import Tensor
 from torch import nn
+from triton import cdiv
 
 from .act_kernels import act_func_backward_kernel
 from .linear_kernels import linear_forward_kernel
@@ -71,8 +71,8 @@ class LinearAutoGrad(torch.autograd.Function):
 
         # Launches a 1D grid, where each program outputs blocks of
         # BLOCK_SIZE_BATCH rows and BLOCK_SIZE_OUT_FEAT columns.
-        grid = lambda META: (triton.cdiv(batch_dim, META['BLOCK_SIZE_BATCH']) *
-                             triton.cdiv(out_feat_dim, META['BLOCK_SIZE_OUT_FEAT']),)
+        grid = lambda META: (cdiv(batch_dim, META['BLOCK_SIZE_BATCH']) *
+                             cdiv(out_feat_dim, META['BLOCK_SIZE_OUT_FEAT']),)
         linear_forward_kernel[grid](flattened_input, weight,
                                     input if bias is None else bias,
                                     pre_act, output,
@@ -122,7 +122,7 @@ class LinearAutoGrad(torch.autograd.Function):
             # Launches a 2D grid, where each program operates over
             # one row and BLOCK_SIZE_FEAT columns.
             grid = lambda META: (batch_dim,
-                                 triton.cdiv(out_feat_dim, META['BLOCK_SIZE_FEAT']))
+                                 cdiv(out_feat_dim, META['BLOCK_SIZE_FEAT']))
             act_func_backward_kernel[grid](output_grad, pre_act, pre_act_grad,
                                            out_feat_dim,
                                            *output_grad.stride(), *pre_act.stride(),
