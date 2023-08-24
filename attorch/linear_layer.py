@@ -100,7 +100,7 @@ class LinearAutoGrad(torch.autograd.Function):
         Args:
             ctx: Context containing stored variables.
             output_grad: Output gradients.
-                Must be the same shape as the input.
+                Must be the same shape as the output.
 
         Returns:
             Input gradient of the linear layer.
