@@ -181,11 +181,11 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2, num_stages=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4, num_stages=3),
+        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
     ],
     key=['feat_dim'],
 )
@@ -231,11 +231,11 @@ def act_func_forward_kernel(
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2, num_stages=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4, num_stages=3),
+        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
     ],
     key=['feat_dim'],
 )
