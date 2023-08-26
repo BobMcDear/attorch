@@ -122,7 +122,7 @@ class ReLU(nn.ReLU):
             as in-place is currently not supported.
     """
     def __init__(self, inplace: bool = False) -> None:
-        super().__init__(inplace=inplace)
+        super().__init__(inplace=False)
 
         if inplace is True:
             warnings.warn('In-place ReLU currently not supported; '
