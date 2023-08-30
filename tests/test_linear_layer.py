@@ -13,7 +13,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('out_dim', [16, 96, 128, 196, 384, 768, 1024])
 @pytest.mark.parametrize('bias', [False, True])
 @pytest.mark.parametrize('act_func', [None, 'sigmoid', 'tanh', 'relu', 'gelu'])
-def test_linear_layers(
+def test_linear_layer(
     input_shape: Tuple[int, ...],
     out_dim: int,
     bias: bool,
