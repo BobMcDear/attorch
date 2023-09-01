@@ -147,6 +147,11 @@ class Linear(nn.Linear):
     and fusing an activation function.
     See also base class.
 
+    Note: Unlike PyTorch's linear layer, the weight matrix in this module is
+    of shape [in_features, out_features] instead of [out_features, in_features].
+    This may cause unexpected issues when manipulating the weights (e.g., porting
+    parameters, initializing them, and so forth).
+
     Args:
         in_features: Number of input features.
         out_features: Number of output features.
@@ -176,8 +181,9 @@ class Linear(nn.Linear):
             raise RuntimeError('Linear layer only supports float32 dtype.')
 
         super().__init__(in_features, out_features, bias, device, dtype)
+        self.weight = nn.Parameter(self.weight.T.contiguous())
         self.act_func = act_func
 
     def forward(self, input: Tensor) -> Tensor:
-        return LinearAutoGrad.apply(input, self.weight.T, self.bias,
+        return LinearAutoGrad.apply(input, self.weight, self.bias,
                                     self.act_func)
