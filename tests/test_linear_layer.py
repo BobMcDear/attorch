@@ -42,5 +42,5 @@ def test_linear_layer(
     bias_grad_pair = ((attorch_linear.bias.grad, pytorch_linear.bias.grad)
                       if bias else (torch.tensor(0), torch.tensor(0)))
     assert_close((attorch_input.grad, pytorch_input.grad),
-                 (attorch_linear.weight.grad, pytorch_linear.weight.grad),
+                 (attorch_linear.weight.grad, pytorch_linear.weight.grad.T.contiguous()),
                  bias_grad_pair, rtol=1e-3, atol=1e-3)
