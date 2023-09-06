@@ -9,23 +9,20 @@ import triton.language as tl
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
     ],
-    key=['feat_dim'],
+    key=['size'],
     reset_to_zero=['output_pointer'],
 )
 @triton.jit
 def p_loss_forward_kernel(
     input_pointer, target_pointer, output_pointer,
-    batch_dim, feat_dim,
-    input_batch_stride, input_feat_stride,
-    target_batch_stride, target_feat_stride,
-    p_loss: tl.constexpr, reduction: tl.constexpr,
-    BLOCK_SIZE_FEAT: tl.constexpr,
+    size, p_loss: tl.constexpr, reduction: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr,
     ):
     """
     Measures the L1 or squared L2 norm of the difference between the input
@@ -33,43 +30,27 @@ def p_loss_forward_kernel(
 
     Args:
         input_pointer: Pointer to the input.
-            The input must be of shape [batch_dim, feat_dim].
+            The input must be of shape [size].
         target_pointer: Pointer to the target.
-            The target must be of shape [batch_dim, feat_dim].
+            The target must be of shape [size].
         output_pointer: Pointer to a container the error is written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous
-            if reduction is 'none', and otherwise a scalar.
-        batch_dim: Batch dimension of the input and target.
-        feat_dim: Dimensionality of the features of the input and target.
-        input_batch_stride: Stride necessary to jump one element along the
-            input's batch dimension.
-        input_feat_stride: Stride necessary to jump one element along the
-            input's feature dimension.
-        target_batch_stride: Stride necessary to jump one element along the
-            target's batch dimension.
-        target_feat_stride: Stride necessary to jump one element along the
-            target's feature dimension.
+            The container must be of shape [size] if reduction is 'none',
+            and otherwise a scalar.
+        size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error.
             Options are 1 for MAE and 2 for MSE.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
-        BLOCK_SIZE_FEAT: Block size across the feature dimension.
+        BLOCK_SIZE: Block size.
     """
-    # This program processes a single row and BLOCK_SIZE_FEAT columns.
-    batch_pid = tl.program_id(axis=0)
-    feat_pid = tl.program_id(axis=1)
+    # This program processes BLOCK_SIZE rows.
+    pid = tl.program_id(axis=0)
+    offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offset < size
 
-    feat_offset = feat_pid * BLOCK_SIZE_FEAT + tl.arange(0, BLOCK_SIZE_FEAT)
-    feat_mask = feat_offset < feat_dim
-
-    input_pointer += (batch_pid * input_batch_stride +
-                      feat_offset * input_feat_stride)
-    target_pointer += (batch_pid * target_batch_stride +
-                       feat_offset * target_feat_stride)
-
-    input = tl.load(input_pointer, mask=feat_mask)
-    target = tl.load(target_pointer, mask=feat_mask)
+    input = tl.load(input_pointer + offset, mask=mask)
+    target = tl.load(target_pointer + offset, mask=mask)
     diff = input - target
 
     if p_loss == 1:
@@ -79,11 +60,10 @@ def p_loss_forward_kernel(
         error = diff * diff
 
     if reduction == 'none':
-        output_pointer += batch_pid * feat_dim + feat_offset
-        tl.store(output_pointer, error, mask=feat_mask)
+        tl.store(output_pointer + offset, error, mask=mask)
 
     elif reduction == 'mean':
-        tl.atomic_add(output_pointer, tl.sum(error) / (batch_dim * feat_dim))
+        tl.atomic_add(output_pointer, tl.sum(error) / size)
 
     elif reduction == 'sum':
         tl.atomic_add(output_pointer, tl.sum(error))
@@ -91,24 +71,20 @@ def p_loss_forward_kernel(
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
     ],
-    key=['feat_dim'],
+    key=['size'],
 )
 @triton.jit
 def p_loss_backward_kernel(
     output_grad_pointer, input_pointer, target_pointer,
-    input_grad_pointer, target_grad_pointer,
-    batch_dim, feat_dim,
-    output_grad_batch_stride, output_grad_feat_stride,
-    input_batch_stride, input_feat_stride,
-    target_batch_stride, target_feat_stride,
+    input_grad_pointer, target_grad_pointer, size,
     p_loss: tl.constexpr, reduction: tl.constexpr,
-    BLOCK_SIZE_FEAT: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr,
     ):
     """
     Calculates the input gradient of the mean absolute error or
@@ -116,56 +92,35 @@ def p_loss_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to the error's output gradients.
-            The output container must be a scalar or of shape [batch_dim, feat_dim].
+            The output container must be a scalar or of shape [size].
         input_pointer: Pointer to the input.
-            The input must be of shape [batch_dim, feat_dim].
+            The input must be of shape [size].
         target_pointer: Pointer to the target.
-            The target must be of shape [batch_dim, feat_dim].
+            The target must be of shape [size].
         input_grad_pointer: Pointer to a container the input's gradients are written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
+            The container must be of shape [size].
         target_grad_pointer: Pointer to a container the target's gradients are written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
-        batch_dim: Batch dimension of the input and target.
-        feat_dim: Dimensionality of the features of the input and target.
-        output_grad_batch_stride: Stride necessary to jump one element along the
-            output gradients' batch dimension if it is not a scalar.
-        output_grad_feat_stride: Stride necessary to jump one element along the
-            output gradients' feature dimension if it is not a scalar.
-        input_batch_stride: Stride necessary to jump one element along the
-            input's batch dimension.
-        input_feat_stride: Stride necessary to jump one element along the
-            input's feature dimension.
-        target_batch_stride: Stride necessary to jump one element along the
-            target's batch dimension.
-        target_feat_stride: Stride necessary to jump one element along the
-            target's feature dimension.
+            The container must be of shape [size].
+        size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error whose gradient is calculated.
             Options are 1 for MAE and 2 for MSE.
         reduction: Reduction strategy for the output whose gradient is calculated.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
-        BLOCK_SIZE_FEAT: Block size across the feature dimension.
+        BLOCK_SIZE: Block size.
     """
-    # This program processes a single row and BLOCK_SIZE_FEAT columns.
-    batch_pid = tl.program_id(axis=0)
-    feat_pid = tl.program_id(axis=1)
-
-    feat_offset = feat_pid * BLOCK_SIZE_FEAT + tl.arange(0, BLOCK_SIZE_FEAT)
-    feat_mask = feat_offset < feat_dim
-
-    input_pointer += (batch_pid * input_batch_stride +
-                      feat_offset * input_feat_stride)
-    target_pointer += (batch_pid * target_batch_stride +
-                       feat_offset * target_feat_stride)
+    # This program processes BLOCK_SIZE rows.
+    pid = tl.program_id(axis=0)
+    offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offset < size
 
     output_grad_mask = None
     if reduction == 'none':
-        output_grad_pointer += (batch_pid * output_grad_batch_stride +
-                                feat_offset * output_grad_feat_stride)
-        output_grad_mask = feat_mask
+        output_grad_pointer += offset
+        output_grad_mask = mask
 
-    input = tl.load(input_pointer, mask=feat_mask)
-    target = tl.load(target_pointer, mask=feat_mask)
+    input = tl.load(input_pointer + offset, mask=mask)
+    target = tl.load(target_pointer + offset, mask=mask)
     output_grad = tl.load(output_grad_pointer, mask=output_grad_mask)
 
     if p_loss == 1:
@@ -175,11 +130,8 @@ def p_loss_backward_kernel(
         input_grad = 2 * (input - target)
 
     if reduction == 'mean':
-        input_grad /= batch_dim * feat_dim
+        input_grad /= size
 
     input_grad *= output_grad
-    input_grad_pointer += batch_pid * feat_dim + feat_offset
-    target_grad_pointer += batch_pid * feat_dim + feat_offset
-
-    tl.store(input_grad_pointer, input_grad, mask=feat_mask)
-    tl.store(target_grad_pointer, -input_grad, mask=feat_mask)
+    tl.store(input_grad_pointer + offset, input_grad, mask=mask)
+    tl.store(target_grad_pointer + offset, -input_grad, mask=mask)

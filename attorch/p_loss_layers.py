@@ -48,29 +48,22 @@ class PLossAutoGrad(torch.autograd.Function):
         assert input.shape == target.shape, \
             f'Input shape {input.shape} and target shape {target.shape} not equal'
 
-        flattened_input = input.unsqueeze(0) if input.ndim == 1 else input
-        flattened_input = flattened_input.flatten(0, -2)
-        flattened_target = target.view_as(flattened_input)
-
         ctx.p_loss = p_loss
         ctx.reduction = reduction
-        ctx.flattened_shape = flattened_input.shape
         if input.requires_grad or target.requires_grad:
             ctx.save_for_backward(input, target)
 
-        batch_dim, feat_dim = flattened_input.shape
-        output = (torch.empty_like(input=flattened_input,
-                                   memory_format=torch.contiguous_format)
+        flattened_input = input.flatten()
+        flattened_target = target.flatten()
+        size = len(flattened_input)
+        output = (torch.empty_like(flattened_input)
                   if reduction == 'none' else torch.tensor(0., device='cuda'))
 
-        # Launches 2D grid where each program operates over
-        # one row and BLOCK_SIZE_FEAT columns.
-        grid = lambda META: (batch_dim, cdiv(feat_dim, META['BLOCK_SIZE_FEAT']))
+        # Launches 1D grid where each program operates over
+        # BLOCK_SIZE elements.
+        grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         p_loss_forward_kernel[grid](flattened_input, flattened_target, output,
-                                    batch_dim, feat_dim,
-                                    *flattened_input.stride(),
-                                    *flattened_target.stride(),
-                                    p_loss=p_loss, reduction=reduction)
+                                    size, p_loss=p_loss, reduction=reduction)
 
         return output.view_as(input) if reduction == 'none' else output
 
@@ -91,28 +84,19 @@ class PLossAutoGrad(torch.autograd.Function):
             Input gradient of the error.
         """
         (input, target) = ctx.saved_tensors
-        flattened_input = input.view(ctx.flattened_shape)
-        flattened_target = target.view_as(flattened_input)
+        flattened_input = input.flatten()
+        flattened_target = target.flatten()
+        output_grad = output_grad.flatten()
 
-        output_grad_stride = (1, 1)
-        if ctx.reduction == 'none':
-            output_grad = output_grad.view_as(flattened_input)
-            output_grad_stride = output_grad.stride()
+        size = len(flattened_input)
+        input_grad = torch.empty_like(flattened_input)
+        target_grad = torch.empty_like(flattened_target)
 
-        batch_dim, feat_dim = flattened_input.shape
-        input_grad = torch.empty_like(flattened_input,
-                                      memory_format=torch.contiguous_format)
-        target_grad = torch.empty_like(input_grad)
-
-        # Launches 2D grid where each program operates over
-        # one row and BLOCK_SIZE_FEAT columns.
-        grid = lambda META: (batch_dim, cdiv(feat_dim, META['BLOCK_SIZE_FEAT']))
+        # Launches 1D grid where each program operates over
+        # BLOCK_SIZE elements.
+        grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         p_loss_backward_kernel[grid](output_grad, flattened_input, flattened_target,
-                                     input_grad, target_grad,
-                                     batch_dim, feat_dim,
-                                     *output_grad_stride,
-                                     *flattened_input.stride(),
-                                     *flattened_target.stride(),
+                                     input_grad, target_grad, size,
                                      p_loss=ctx.p_loss, reduction=ctx.reduction)
 
         # Pads output with None because a gradient is necessary for
