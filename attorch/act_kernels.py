@@ -181,111 +181,80 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
     ],
-    key=['feat_dim'],
+    key=['size'],
 )
 @triton.jit
 def act_func_forward_kernel(
-    input_pointer, output_pointer,
-    feat_dim,
-    input_batch_stride, input_feat_stride,
+    input_pointer, output_pointer, size,
     act_func: tl.constexpr,
-    BLOCK_SIZE_FEAT: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr,
     ):
     """
     Applies an activation function to the input.
 
     Args:
         input_pointer: Pointer to the input to transform.
-            The input must be of shape [batch_dim, feat_dim].
+            The input must be of shape [size].
         output_pointer: Pointer to a container the result is written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
-        feat_dim: Dimensionality of the features.
-        input_batch_stride: Stride necessary to jump one element along the
-            input's batch dimension.
-        input_feat_stride: Stride necessary to jump one element along the
-            input's feature dimension.
+            The container must be of shape [size].
+        size: Number of elements in the input.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
-        BLOCK_SIZE_FEAT: Block size across the feature dimension.
+        BLOCK_SIZE: Block size.
     """
-    # This program processes a single row and BLOCK_SIZE_FEAT columns.
-    batch_pid = tl.program_id(axis=0)
-    feat_pid = tl.program_id(axis=1)
+    # This program processes BLOCK_SIZE rows.
+    pid = tl.program_id(axis=0)
+    offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offset < size
 
-    feat_offset = feat_pid * BLOCK_SIZE_FEAT + tl.arange(0, BLOCK_SIZE_FEAT)
-    feat_mask = feat_offset < feat_dim
-
-    input_pointer += (batch_pid * input_batch_stride +
-                      feat_offset * input_feat_stride)
-    output_pointer += batch_pid * feat_dim + feat_offset
-
-    input = tl.load(input_pointer, mask=feat_mask)
-    tl.store(output_pointer, apply_act_func(input, act_func), mask=feat_mask)
+    input = tl.load(input_pointer + offset, mask=mask)
+    tl.store(output_pointer + offset, apply_act_func(input, act_func), mask=mask)
 
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_FEAT': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE_FEAT': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE_FEAT': 1024}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
+        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
+        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
     ],
-    key=['feat_dim'],
+    key=['size'],
 )
 @triton.jit
 def act_func_backward_kernel(
-    output_grad_pointer, input_pointer, input_grad_pointer,
-    feat_dim,
-    output_grad_batch_stride, output_grad_feat_stride,
-    input_batch_stride, input_feat_stride,
+    output_grad_pointer, input_pointer, input_grad_pointer, size,
     act_func: tl.constexpr,
-    BLOCK_SIZE_FEAT: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr,
     ):
     """
     Calculates the input gradient of an activation function.
 
     Args:
         output_grad_pointer: Pointer to the activation's output gradients.
-            The output container must be of shape [batch_dim, feat_dim].
+            The output container must be of shape [size].
         input_pointer: Pointer to the activation's input.
-            The input must be of shape [batch_dim, feat_dim].
+            The input must be of shape [size].
         input_grad_pointer: Pointer to a container the input's gradients are written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
-        feat_dim: Dimensionality of the features.
-        output_grad_batch_stride: Stride necessary to jump one element along the
-            output gradients' batch dimension.
-        output_grad_feat_stride: Stride necessary to jump one element along the
-            output gradients' feature dimension.
-        input_batch_stride: Stride necessary to jump one element along the
-            input's batch dimension.
-        input_feat_stride: Stride necessary to jump one element along the
-            input's feature dimension.
+            The container must be of shape [size].
+        size: Number of elements in the input.
         act_func: Name of activation function whose gradient is calculated.
             Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
-        BLOCK_SIZE_FEAT: Block size across the feature dimension.
+        BLOCK_SIZE: Block size.
     """
-    # This program processes a single row and BLOCK_SIZE_FEAT columns.
-    batch_pid = tl.program_id(axis=0)
-    feat_pid = tl.program_id(axis=1)
+    # This program processes BLOCK_SIZE rows.
+    pid = tl.program_id(axis=0)
+    offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offset < size
 
-    feat_offset = feat_pid * BLOCK_SIZE_FEAT + tl.arange(0, BLOCK_SIZE_FEAT)
-    feat_mask = feat_offset < feat_dim
-
-    output_grad_pointer += (batch_pid * output_grad_batch_stride +
-                            feat_offset * output_grad_feat_stride)
-    input_pointer += (batch_pid * input_batch_stride +
-                      feat_offset * input_feat_stride)
-    input_grad_pointer += batch_pid * feat_dim + feat_offset
-
-    output_grad = tl.load(output_grad_pointer, mask=feat_mask)
-    input = tl.load(input_pointer, mask=feat_mask)
+    output_grad = tl.load(output_grad_pointer + offset, mask=mask)
+    input = tl.load(input_pointer + offset, mask=mask)
 
     input_grad = output_grad * apply_act_func_grad(input, act_func)
-    tl.store(input_grad_pointer, input_grad, mask=feat_mask)
+    tl.store(input_grad_pointer + offset, input_grad, mask=mask)

@@ -117,16 +117,17 @@ class LinearAutoGrad(torch.autograd.Function):
             pre_act_grad = output_grad
 
         else:
-            pre_act_grad = torch.empty_like(pre_act)
+            size = batch_dim * out_feat_dim
+            pre_act_grad = torch.empty(size, dtype=pre_act.dtype,
+                                       device=pre_act.device)
 
-            # Launches a 2D grid, where each program operates over
-            # one row and BLOCK_SIZE_FEAT columns.
-            grid = lambda META: (batch_dim,
-                                 cdiv(out_feat_dim, META['BLOCK_SIZE_FEAT']))
+            # Launches 1D grid where each program operates over
+            # BLOCK_SIZE elements.
+            grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
             act_func_backward_kernel[grid](output_grad, pre_act, pre_act_grad,
-                                           out_feat_dim,
-                                           *output_grad.stride(), *pre_act.stride(),
-                                           ctx.act_func)
+                                           size, ctx.act_func)
+
+            pre_act_grad = pre_act_grad.view_as(pre_act)
 
         # Using PyTorch's matmul, but linear_forward_kernel
         # could have also been used.

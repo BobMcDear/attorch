@@ -11,7 +11,7 @@ from torch import Tensor
 from torch import nn
 from triton import cdiv
 
-from .act_kernels import act_func_forward_kernel, act_func_backward_kernel
+from .act_kernels import act_func_backward_kernel, act_func_forward_kernel
 from .types import Context
 
 
@@ -38,23 +38,18 @@ class ActFuncAutoGrad(torch.autograd.Function):
         Returns:
             Input transformed by the desired activation function.
         """
-        flattened_input = input.unsqueeze(0) if input.ndim == 1 else input
-        flattened_input = flattened_input.flatten(0, -2)
-
         ctx.act_func = act_func
-        ctx.flattened_shape = flattened_input.shape
         if input.requires_grad:
             ctx.save_for_backward(input)
 
-        batch_dim, feat_dim = flattened_input.shape
-        output = torch.empty_like(flattened_input,
-                                  memory_format=torch.contiguous_format)
+        flattened_input = input.flatten()
+        size = len(flattened_input)
+        output = torch.empty_like(flattened_input)
 
-        # Launches 2D grid where each program operates over
-        # one row and BLOCK_SIZE_FEAT columns.
-        grid = lambda META: (batch_dim, cdiv(feat_dim, META['BLOCK_SIZE_FEAT']))
-        act_func_forward_kernel[grid](flattened_input, output, feat_dim,
-                                      *flattened_input.stride(), act_func)
+        # Launches 1D grid where each program operates over
+        # BLOCK_SIZE elements.
+        grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
+        act_func_forward_kernel[grid](flattened_input, output, size, act_func)
 
         return output.view_as(input)
 
@@ -75,19 +70,17 @@ class ActFuncAutoGrad(torch.autograd.Function):
             Input gradient of the activation function.
         """
         (input,) = ctx.saved_tensors
-        flattened_input = input.view(ctx.flattened_shape)
-        output_grad = output_grad.view_as(flattened_input)
+        flattened_input = input.flatten()
+        output_grad = output_grad.flatten()
 
-        batch_dim, feat_dim = flattened_input.shape
-        input_grad = torch.empty_like(flattened_input,
-                                      memory_format=torch.contiguous_format)
+        size = len(flattened_input)
+        input_grad = torch.empty_like(flattened_input)
 
-        # Launches 2D grid where each program operates over
-        # one row and BLOCK_SIZE_FEAT columns.
-        grid = lambda META: (batch_dim, cdiv(feat_dim, META['BLOCK_SIZE_FEAT']))
+        # Launches 1D grid where each program operates over
+        # BLOCK_SIZE elements.
+        grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         act_func_backward_kernel[grid](output_grad, flattened_input, input_grad,
-                                       feat_dim, *output_grad.stride(),
-                                       *flattened_input.stride(), ctx.act_func)
+                                       size, ctx.act_func)
 
         # Pads output with None because a gradient is necessary for
         # all input arguments.
