@@ -119,14 +119,6 @@ class L1Loss(nn.L1Loss):
         reduce: Flag for averaging or summing all the error entries instead of
             returning a loss per element.
     """
-    def __init__(
-        self,
-        reduction: str = 'mean',
-        size_average: Optional[bool] = None,
-        reduce: Optional[bool] = None,
-        ) -> None:
-        super().__init__(size_average, reduce, reduction)
-
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return PLossAutoGrad.apply(input, target, 1, self.reduction)
 
@@ -146,13 +138,5 @@ class MSELoss(nn.MSELoss):
         reduce: Flag for averaging or summing all the error entries instead of
             returning a loss per element.
     """
-    def __init__(
-        self,
-        reduction: str = 'mean',
-        size_average: Optional[bool] = None,
-        reduce: Optional[bool] = None,
-        ) -> None:
-        super().__init__(size_average, reduce, reduction)
-
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return PLossAutoGrad.apply(input, target, 2, self.reduction)
