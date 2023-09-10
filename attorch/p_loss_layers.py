@@ -56,8 +56,8 @@ class PLossAutoGrad(torch.autograd.Function):
         flattened_input = input.flatten()
         flattened_target = target.flatten()
         size = len(flattened_input)
-        output = (torch.empty_like(flattened_input)
-                  if reduction == 'none' else torch.tensor(0., device='cuda'))
+        output = (torch.empty_like(flattened_input) if reduction == 'none'
+                  else torch.empty(cdiv(size, 32), device=input.device))
 
         # Launches 1D grid where each program operates over
         # BLOCK_SIZE elements.
@@ -65,7 +65,14 @@ class PLossAutoGrad(torch.autograd.Function):
         p_loss_forward_kernel[grid](flattened_input, flattened_target, output,
                                     size, p_loss=p_loss, reduction=reduction)
 
-        return output.view_as(input) if reduction == 'none' else output
+        if reduction != 'none':
+            BLOCK_SIZE = p_loss_forward_kernel.best_config.kwargs['BLOCK_SIZE']
+            output = output[:cdiv(size, BLOCK_SIZE)].sum()
+
+        else:
+            output = output.view_as(input)
+
+        return output
 
     @staticmethod
     def backward(

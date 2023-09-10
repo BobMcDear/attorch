@@ -16,7 +16,6 @@ import triton.language as tl
         triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
     ],
     key=['size'],
-    reset_to_zero=['output_pointer'],
 )
 @triton.jit
 def p_loss_forward_kernel(
@@ -35,13 +34,16 @@ def p_loss_forward_kernel(
             The target must be of shape [size].
         output_pointer: Pointer to a container the error is written to.
             The container must be of shape [size] if reduction is 'none',
-            and otherwise a scalar.
+            and otherwise of shape [size/BLOCK_SIZE].
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error.
             Options are 1 for MAE and 2 for MSE.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
+            If a reduction method is specified, the reduced result of each
+            program is written to a separate index in the output container,
+            which should later be summed.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE rows.
@@ -63,10 +65,10 @@ def p_loss_forward_kernel(
         tl.store(output_pointer + offset, error, mask=mask)
 
     elif reduction == 'mean':
-        tl.atomic_add(output_pointer, tl.sum(error) / size)
+        tl.store(output_pointer + pid, tl.sum(error) / size)
 
     elif reduction == 'sum':
-        tl.atomic_add(output_pointer, tl.sum(error))
+        tl.store(output_pointer + pid, tl.sum(error))
 
 
 @triton.autotune(
