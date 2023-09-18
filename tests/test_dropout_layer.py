@@ -1,6 +1,4 @@
-from math import isclose
 from typing import Tuple
-
 
 import pytest
 import torch
@@ -25,8 +23,7 @@ def test_dropout_layer(shape: Tuple[int, ...], drop_p: float) -> None:
 
     else:
         assert_close((output, torch.where(output == 0, output, input / (1 - drop_p))))
-        assert isclose(n_zeroed, drop_p * input.numel(),
-                       rel_tol=1e-1, abs_tol=5e-2)
+        assert_close((n_zeroed / input.numel(), drop_p), rtol=1e-1, atol=5e-2)
 
     output_grad = create_input_like(output)
     output.backward(output_grad)
