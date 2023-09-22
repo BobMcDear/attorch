@@ -2,6 +2,7 @@
 
 attorch is a small subset of PyTorch's neural network modules, written purely in Python using OpenAI's Triton. Its goal is to be easily hackable, self-contained, and readable, whilst maintaining the efficiency and user interface of PyTorch. Currently implemented layers, with full forward and backward pass support, include,
 
+* ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
 * ```attorch.GELU```: Applies GELU to the input.
 * ```attorch.ReLU```: Applies ReLU to the input.
 * ```attorch.Sigmoid```: Applies sigmoid to the input.
