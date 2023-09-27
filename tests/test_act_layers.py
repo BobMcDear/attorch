@@ -8,7 +8,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 
 
 @pytest.mark.parametrize('shape', default_shapes())
-@pytest.mark.parametrize('act_func', ['Sigmoid', 'Tanh', 'ReLU', 'GELU'])
+@pytest.mark.parametrize('act_func', ['Sigmoid', 'Tanh', 'ReLU', 'GELU', 'SiLU'])
 def test_act_layers(shape: Tuple[int, ...], act_func: str) -> None:
     attorch_input = create_input(shape)
     pytorch_input = create_input(shape)
