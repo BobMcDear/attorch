@@ -5,6 +5,7 @@ attorch is a small subset of PyTorch's neural network modules, written purely in
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
 * ```attorch.GELU```: Applies GELU to the input.
 * ```attorch.ReLU```: Applies ReLU to the input.
+* ```attorch.SiLU```: Applies SiLU to the input.
 * ```attorch.Sigmoid```: Applies sigmoid to the input.
 * ```attorch.Tanh```: Applies tanh to the input.
 * ```attorch.LogSoftmax```: Normalizes the input using softmax and takes its log.

@@ -33,7 +33,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
             input: Input to transform.
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
 
         Returns:
             Input transformed by the desired activation function.
@@ -132,3 +132,23 @@ class GELU(nn.GELU):
     """
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input, 'gelu')
+
+
+class SiLU(nn.SiLU):
+    """
+    Applied SiLU to the input.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+    """
+    def __init__(self, inplace: bool = False) -> None:
+        super().__init__(inplace=False)
+
+        if inplace is True:
+            warnings.warn('In-place SiLU currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'silu')

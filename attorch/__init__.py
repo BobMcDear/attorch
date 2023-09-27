@@ -4,7 +4,7 @@ written purely in Python using OpenAI's Triton.
 """
 
 
-from .act_layers import GELU, ReLU, Sigmoid, Tanh
+from .act_layers import GELU, ReLU, SiLU, Sigmoid, Tanh
 from .conv_layer import Conv2d
 from .dropout_layer import Dropout
 from .linear_layer import Linear

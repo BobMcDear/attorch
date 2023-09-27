@@ -124,6 +124,34 @@ def gelu_grad(input):
 
 
 @triton.jit
+def silu(input):
+    """
+    Applies SiLU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by SiLU.
+    """
+    return input * sigmoid(input)
+
+
+@triton.jit
+def silu_grad(input):
+    """
+    Calculates the gradient of SiLU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of SiLU.
+    """
+    return input * sigmoid_grad(input) + sigmoid(input)
+
+
+@triton.jit
 def apply_act_func(input, act_func: tl.constexpr):
     """
     Applies an activation function to the input.
@@ -131,7 +159,7 @@ def apply_act_func(input, act_func: tl.constexpr):
     Args:
         input: Input. The input must be loaded and cannot be a pointer.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
 
     Returns:
         Input transformed by the desired activation function.
@@ -148,6 +176,9 @@ def apply_act_func(input, act_func: tl.constexpr):
     elif act_func == 'gelu':
         output = gelu(input)
 
+    elif act_func == 'silu':
+        output = silu(input)
+
     return output
 
 
@@ -159,7 +190,7 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
     Args:
         input: Input. The input must be loaded and cannot be a pointer.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
 
     Returns:
         Gradient of the desired activation function.
@@ -175,6 +206,9 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
 
     elif act_func == 'gelu':
         output = gelu_grad(input)
+
+    elif act_func == 'silu':
+        output = silu_grad(input)
 
     return output
 
@@ -205,7 +239,7 @@ def act_func_forward_kernel(
             The container must be of shape [size].
         size: Number of elements in the input.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE rows.
@@ -245,7 +279,7 @@ def act_func_backward_kernel(
             The container must be of shape [size].
         size: Number of elements in the input.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE rows.

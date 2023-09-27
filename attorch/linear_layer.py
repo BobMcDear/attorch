@@ -39,7 +39,7 @@ class LinearAutoGrad(torch.autograd.Function):
             bias: Optional additive bias vector, with None for no bias.
                 If provided, must be of shape [out_feat_dim].
             act_func: Name of activation function to apply, with None for identity.
-                    Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
 
         Returns:
             Input linearly transformed, potentially with added biased and
@@ -158,7 +158,7 @@ class Linear(nn.Linear):
         out_features: Number of output features.
         bias: Flag for additive bias.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         device: Device to use. Only CUDA is supported.
         dtype: Dtype of layer. Only float32 is supported.
 

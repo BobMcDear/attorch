@@ -93,7 +93,7 @@ def linear_forward_kernel(
             weights' output feature dimension.
         add_bias: Flag for adding a bias vector.
         act_func: Name of activation function to apply, with None for identity.
-                    Options are 'sigmoid', 'tanh', 'relu', and 'gelu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         save_pre_act: Flag for saving the pre-activation input.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_IN_FEAT: Block size across the input feature dimension.
