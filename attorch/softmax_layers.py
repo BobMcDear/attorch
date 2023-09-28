@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch import nn
+from triton import cdiv
 
 from .softmax_kernels import softmax_backward_kernel, softmax_forward_kernel
 from .types import Context
@@ -40,9 +41,9 @@ class SoftmaxAutoGrad(torch.autograd.Function):
         batch_dim, feat_dim = flattened_input.shape
         output = torch.empty_like(flattened_input)
 
-        # Launches 1D grid where each program operates over one row.
-        grid = (batch_dim,)
-        softmax_forward_kernel[grid](flattened_input, output, feat_dim,
+        # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
+        grid = lambda META: (cdiv(batch_dim, META['BLOCK_SIZE_BATCH']),)
+        softmax_forward_kernel[grid](flattened_input, output, batch_dim, feat_dim,
                                      *flattened_input.stride(),
                                      log=log)
 
