@@ -17,3 +17,7 @@ attorch is a small subset of PyTorch's neural network modules, written purely in
 * ```attorch.MSELoss```: Measures the mean squared error between the input and target.
 
 Unless otherwise noted in their docstring, the aforementioned layers behave identically to their PyTorch equivalents.
+
+# Installation
+
+The only dependencies of attorch are ```torch``` and ```triton```. Please install the latest versions of these two libraries and clone this repository to get started.
