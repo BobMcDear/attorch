@@ -75,10 +75,10 @@ class SoftmaxAutoGrad(torch.autograd.Function):
         batch_dim, feat_dim = output.shape
         input_grad = torch.empty_like(output)
 
-        # Launches 1D grid where each program operates over one row.
-        grid = (batch_dim,)
+        # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
+        grid = lambda META: (cdiv(batch_dim, META['BLOCK_SIZE_BATCH']),)
         softmax_backward_kernel[grid](flattened_output_grad, output, input_grad,
-                                      feat_dim,
+                                      batch_dim, feat_dim,
                                       *flattened_output_grad.stride(),
                                       log=ctx.log)
 
