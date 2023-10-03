@@ -21,3 +21,7 @@ Unless otherwise noted in their docstring, the aforementioned layers behave iden
 # Installation
 
 The only dependencies of attorch are ```torch``` and ```triton```. Please install the latest versions of these two libraries and clone this repository to get started.
+
+# Tests
+
+Each module is accompanied by tests that ensure its correctness by testing it against PyTorch layers. They can be conducted by installing ```pytest``` and executing ```pytest```. It should be noted that some tests might fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
