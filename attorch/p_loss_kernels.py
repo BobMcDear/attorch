@@ -6,15 +6,11 @@ Kernels for p-norm-induced losses.
 import triton
 import triton.language as tl
 
+from .utils import element_wise_kernel_configs
+
 
 @triton.autotune(
-    configs=[
-        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
-    ],
+    configs=element_wise_kernel_configs(),
     key=['size'],
 )
 @triton.jit
@@ -72,13 +68,7 @@ def p_loss_forward_kernel(
 
 
 @triton.autotune(
-    configs=[
-        triton.Config({'BLOCK_SIZE': 64}, num_warps=2),
-        triton.Config({'BLOCK_SIZE': 128}, num_warps=2),
-        triton.Config({'BLOCK_SIZE': 256}, num_warps=4),
-        triton.Config({'BLOCK_SIZE': 512}, num_warps=4),
-        triton.Config({'BLOCK_SIZE': 1024}, num_warps=4),
-    ],
+    configs=element_wise_kernel_configs(),
     key=['size'],
 )
 @triton.jit
