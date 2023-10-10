@@ -58,6 +58,8 @@ def linear_forward_kernel(
     batch_dim, in_feat_dim, out_feat_dim,
     input_batch_stride, input_in_feat_stride,
     weight_in_feat_stride, weight_out_feat_stride,
+    pre_act_batch_stride, pre_act_out_feat_stride,
+    output_batch_stride, output_out_feat_stride,
     add_bias: tl.constexpr, act_func: tl.constexpr, save_pre_act: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_IN_FEAT: tl.constexpr,
     BLOCK_SIZE_OUT_FEAT: tl.constexpr, GROUP_SIZE_BATCH: tl.constexpr,
@@ -75,11 +77,9 @@ def linear_forward_kernel(
             The bias vector, if provided, must be of shape [out_feat_dim].
         pre_act_pointer: Pointer to an optional container the pre-activation input
             is written to if act_func is not None and save_pre_act is True.
-            The container, if provided, must be of shape [batch_dim, out_feat_dim]
-            and contiguous.
+            The container, if provided, must be of shape [batch_dim, out_feat_dim].
         output_pointer: Pointer to a container the result is written to.
-            The container must be of shape [batch_dim, out_feat_dim]
-            and contiguous.
+            The container must be of shape [batch_dim, out_feat_dim].
         batch_dim: Batch dimension of the input and output.
         in_feat_dim: Dimensionality of the input features.
         out_feat_dim: Dimensionality of the output features.
@@ -91,6 +91,14 @@ def linear_forward_kernel(
             weights' input feature dimension.
         weight_out_feat_stride: Stride necessary to jump one element along the
             weights' output feature dimension.
+        pre_act_batch_stride: Stride necessary to jump one element along the
+            pre-activation input container's batch dimension.
+        pre_act_out_feat_stride: Stride necessary to jump one element along the
+            pre-activation input container's feature dimension.
+        output_batch_stride: Stride necessary to jump one element along the
+            output container's batch dimension.
+        output_out_feat_stride: Stride necessary to jump one element along the
+            output container's feature dimension.
         add_bias: Flag for adding a bias vector.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
@@ -150,14 +158,14 @@ def linear_forward_kernel(
 
     if act_func is not None:
         if save_pre_act:
-            pre_act_pointer += (out_feat_dim * batch_offset[:, None] +
-                                out_feat_offset[None, :])
+            pre_act_pointer += (pre_act_batch_stride * batch_offset[:, None] +
+                                pre_act_out_feat_stride * out_feat_offset[None, :])
             tl.store(pre_act_pointer, accum,
                      mask=batch_mask[:, None] & out_feat_mask[None, :])
 
         accum = apply_act_func(accum, act_func)
 
-    output_pointer += (out_feat_dim * batch_offset[:, None] +
-                       out_feat_offset[None, :])
+    output_pointer += (output_batch_stride * batch_offset[:, None] +
+                       output_out_feat_stride * out_feat_offset[None, :])
     tl.store(output_pointer, accum,
              mask=batch_mask[:, None] & out_feat_mask[None, :])

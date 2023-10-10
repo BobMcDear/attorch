@@ -42,6 +42,7 @@ def softmax_forward_kernel(
     input_pointer, output_pointer,
     batch_dim, feat_dim,
     input_batch_stride, input_feat_stride,
+    output_batch_stride, output_feat_stride,
     log: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_FEAT: tl.constexpr,
     ):
@@ -52,13 +53,17 @@ def softmax_forward_kernel(
         input_pointer: Pointer to the input to normalize.
             The input must be of shape [batch_dim, feat_dim].
         output_pointer: Pointer to a container the result is written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
+            The container must be of shape [batch_dim, feat_dim].
         batch_dim: Batch dimension.
         feat_dim: Dimensionality of the features.
         input_batch_stride: Stride necessary to jump one element along the
             input's batch dimension.
         input_feat_stride: Stride necessary to jump one element along the
             input's feature dimension.
+        output_batch_stride: Stride necessary to jump one element along the
+            output container's batch dimension.
+        output_feat_stride: Stride necessary to jump one element along the
+            output container's feature dimension.
         log: Flag for indicating if the log of softmax should be taken.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_FEAT: Block size across the feature dimension.
@@ -74,7 +79,8 @@ def softmax_forward_kernel(
 
     input_pointer += (input_batch_stride * batch_offset[:, None] +
                       input_feat_stride * feat_offset[None, :])
-    output_pointer += feat_dim * batch_offset[:, None] + feat_offset[None, :]
+    output_pointer += (output_batch_stride * batch_offset[:, None] +
+                       output_feat_stride * feat_offset[None, :])
 
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :],
                     other=-float('inf'))
@@ -102,6 +108,8 @@ def softmax_backward_kernel(
     output_grad_pointer, output_pointer, input_grad_pointer,
     batch_dim, feat_dim,
     output_grad_batch_stride, output_grad_feat_stride,
+    output_batch_stride, output_feat_stride,
+    input_grad_batch_stride, input_grad_feat_stride,
     log: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_FEAT: tl.constexpr,
     ):
@@ -112,15 +120,23 @@ def softmax_backward_kernel(
         output_grad_pointer: Pointer to softmax's output gradients.
             The output container must be of shape [batch_dim, feat_dim].
         output_pointer: Pointer to softmax's output.
-            The output must be of shape [batch_dim, feat_dim] and contiguous.
+            The output must be of shape [batch_dim, feat_dim].
         input_grad_pointer: Pointer to a container the input's gradients are written to.
-            The container must be of shape [batch_dim, feat_dim] and contiguous.
+            The container must be of shape [batch_dim, feat_dim].
         batch_dim: Batch dimension.
         feat_dim: Dimensionality of the features.
         output_grad_batch_stride: Stride necessary to jump one element along the
             output gradients' batch dimension.
         output_grad_feat_stride: Stride necessary to jump one element along the
             output gradients' feature dimension.
+        output_batch_stride: Stride necessary to jump one element along the
+            output's batch dimension.
+        output_feat_stride: Stride necessary to jump one element along the
+            output's feature dimension.
+        input_grad_batch_stride: Stride necessary to jump one element along the
+            input gradient container's batch dimension.
+        input_grad_feat_stride: Stride necessary to jump one element along the
+            input gradient container's feature dimension.
         log: Flag indicating if log of softmax was taken.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_FEAT: Block size across the feature dimension.
@@ -136,8 +152,10 @@ def softmax_backward_kernel(
 
     output_grad_pointer += (output_grad_batch_stride * batch_offset[:, None] +
                             output_grad_feat_stride * feat_offset[None, :])
-    output_pointer += feat_dim * batch_offset[:, None] + feat_offset[None, :]
-    input_grad_pointer += feat_dim * batch_offset[:, None] + feat_offset[None, :]
+    output_pointer += (output_batch_stride * batch_offset[:, None] +
+                       output_feat_stride * feat_offset[None, :])
+    input_grad_pointer += (input_grad_batch_stride * batch_offset[:, None] +
+                           input_grad_feat_stride * feat_offset[None, :])
 
     output_grad = tl.load(output_grad_pointer,
                           mask=batch_mask[:, None] & feat_mask[None, :])

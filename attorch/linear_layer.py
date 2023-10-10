@@ -67,7 +67,7 @@ class LinearAutoGrad(torch.autograd.Function):
         output = torch.empty((batch_dim, out_feat_dim),
                              device=input.device,
                              dtype=input.dtype)
-        pre_act = torch.empty_like(output) if save_pre_act else input
+        pre_act = torch.empty_like(output) if save_pre_act else output
 
         # Launches a 1D grid, where each program outputs blocks of
         # BLOCK_SIZE_BATCH rows and BLOCK_SIZE_OUT_FEAT columns.
@@ -78,6 +78,7 @@ class LinearAutoGrad(torch.autograd.Function):
                                     pre_act, output,
                                     batch_dim, in_feat_dim, out_feat_dim,
                                     *flattened_input.stride(), *weight.stride(),
+                                    *pre_act.stride(), *output.stride(),
                                     add_bias=bias is not None, act_func=act_func,
                                     save_pre_act=save_pre_act)
 
