@@ -9,6 +9,8 @@ import triton
 import triton.language as tl
 from triton import next_power_of_2
 
+from .utils import warps_kernel_configs
+
 
 def BLOCK_SIZE_BATCH_heuristic(args: Dict) -> int:
     """
@@ -32,7 +34,7 @@ def BLOCK_SIZE_BATCH_heuristic(args: Dict) -> int:
 
 
 @triton.autotune(
-    configs=[triton.Config({}, num_warps=2**i) for i in range(6)],
+    configs=warps_kernel_configs(),
     key=['batch_dim', 'feat_dim'],
 )
 @triton.heuristics({'BLOCK_SIZE_BATCH': BLOCK_SIZE_BATCH_heuristic,
@@ -98,7 +100,7 @@ def softmax_forward_kernel(
 
 
 @triton.autotune(
-    configs=[triton.Config({}, num_warps=2**i) for i in range(6)],
+    configs=warps_kernel_configs(),
     key=['batch_dim', 'feat_dim'],
 )
 @triton.heuristics({'BLOCK_SIZE_BATCH': BLOCK_SIZE_BATCH_heuristic,
