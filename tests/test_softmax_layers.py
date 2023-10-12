@@ -9,7 +9,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 
 @pytest.mark.parametrize('shape', default_shapes())
 @pytest.mark.parametrize('softmax', ['Softmax', 'LogSoftmax', 'Softmin'])
-def test_act_layers(shape: Tuple[int, ...], softmax: str) -> None:
+def test_softmax_layers(shape: Tuple[int, ...], softmax: str) -> None:
     attorch_input = create_input(shape)
     pytorch_input = create_input(shape)
 
