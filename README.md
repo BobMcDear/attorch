@@ -15,6 +15,7 @@ attorch is a small subset of PyTorch's neural network modules, written purely in
 * ```attorch.Dropout```: Randomly zeroes elements in the input during training.
 * ```attorch.L1Loss```: Measures the mean absolute error between the input and target.
 * ```attorch.MSELoss```: Measures the mean squared error between the input and target.
+* ```attorch.NLLLoss```: Measures the negative log likelihood loss between the input and target, with optional reweighing of each class.
 
 Unless otherwise noted in their docstring, the aforementioned layers behave identically to their PyTorch equivalents.
 

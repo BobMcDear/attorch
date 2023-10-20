@@ -28,7 +28,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
         weight: Optional[Tensor] = None,
         ) -> Tensor:
         """
-        Measures the negative log likelihood between the input and target,
+        Measures the negative log likelihood loss between the input and target,
         with optional reweighing of each class.
 
         Args:
@@ -141,7 +141,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
 
 class NLLLoss(nn.NLLLoss):
     """
-    Measures the negative log likelihood between the input and target,
+    Measures the negative log likelihood loss between the input and target,
     with optional reweighing of each class.
     See also base class.
 

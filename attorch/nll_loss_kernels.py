@@ -49,7 +49,7 @@ def nll_loss_forward_kernel(
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_SPATIAL: tl.constexpr,
     ):
     """
-    Measures the negative log likelihood between the input and target,
+    Measures the negative log likelihood loss between the input and target,
     with optional reweighing of each class.
 
     Args:
