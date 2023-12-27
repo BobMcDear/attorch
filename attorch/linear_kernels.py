@@ -18,7 +18,7 @@ def linear_forward_config(
     n_stages: int = 2,
     ) -> triton.Config:
     """
-    Creates a triton.Config object for linear_kernel
+    Creates a triton.Config object for linear_forward_kernel
     given meta-parameters for auto-tuning.
 
     Args:
