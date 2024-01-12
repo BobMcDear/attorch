@@ -20,10 +20,22 @@ attorch is a small subset of PyTorch's neural network modules, written purely in
 
 Unless otherwise noted in their docstring, the aforementioned layers behave identically to their PyTorch equivalents.
 
+# PyTorch Fallback
+
+To enable easier integration of attorch and PyTorch layers, ```attorch.nn``` is offered, which provides an interface to attorch's modules with PyTorch fallback should a desired layer not be available, as seen below.
+
+```python
+from attorch import nn
+
+
+lin = nn.Linear(10, 20) # Uses attorch's linear layer
+bn = nn.BatchNorm2d(20) # Uses PyTorch's batch norm since it is not available in attorch
+```
+
 # Installation
 
 The only dependencies of attorch are ```torch``` and ```triton```. Please install the latest versions of these two libraries and clone this repository to get started.
 
 # Tests
 
-Each module is accompanied by tests that ensure its correctness by testing it against PyTorch layers. They can be conducted by installing ```pytest``` and executing ```pytest```. It should be noted that some tests might fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
+Each module can be tested against its PyTorch counterpart to ensure correctness. These tests are included under ```tests/``` and can be executed using ```pytest```. It should be noted that some might fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
