@@ -6,6 +6,7 @@ written purely in Python using OpenAI's Triton.
 
 from .act_layers import GELU, ReLU, SiLU, Sigmoid, Tanh
 from .conv_layer import Conv2d
+from .cross_entropy_loss_layer import CrossEntropyLoss
 from .dropout_layer import Dropout
 from .layer_norm_layer import LayerNorm
 from .linear_layer import Linear
