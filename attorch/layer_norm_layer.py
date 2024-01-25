@@ -156,7 +156,12 @@ class LayerNorm(nn.LayerNorm):
     See also base class.
 
     Args:
-
+        normalized_shape: Dimensionality of last feature that is normalized.
+        eps: Epsilon added in the square root in the denominator
+            to avoid division by zero.
+        elementwise_affine: Flag for scaling the normalized output by weights.
+        bias: Flag for adding a bias vector to the normalized output
+            if elementwise_affine is True.
         device: Device to use. Only CUDA is supported.
         dtype: Dtype of layer. Only float32 is supported.
 
