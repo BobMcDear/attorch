@@ -162,6 +162,10 @@ class Conv2d(nn.Conv2d):
     2D-convolves over the input using weights, optionally adding bias.
     See also base class.
 
+    Note: The Triton compiler does not perform well with convolutional kernels,
+    and a significant speed disparity between this module and its PyTorch equivalent
+    should be expected. Use at your own discretion.
+
     Args:
         in_channels: Number of input channels.
         out_channels: Number of output channels.
