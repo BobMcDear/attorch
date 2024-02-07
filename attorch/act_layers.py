@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch import nn
+from torch.cuda.amp import custom_bwd, custom_fwd
 from triton import cdiv
 
 from .act_kernels import act_func_backward_kernel, act_func_forward_kernel
@@ -20,6 +21,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
     Autodiff for activation functions.
     """
     @staticmethod
+    @custom_fwd
     def forward(
         ctx: Context,
         input: Tensor,
@@ -54,6 +56,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
         return output.view_as(input)
 
     @staticmethod
+    @custom_bwd
     def backward(
         ctx: Context,
         output_grad: Tensor,
