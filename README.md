@@ -37,7 +37,7 @@ gap = nn.AdaptiveAvgPool2d(1) # Uses PyTorch's global pooling since GAP is not a
 
 # Installation
 
-The only dependencies of attorch are ```torch``` and ```triton```. Please install the latest versions of these two libraries and clone this repository to get started.
+The only dependencies of attorch are ```torch==2.2.0``` and ```triton==2.2.0```. Please install the specified versions of these two libraries and clone this repository to get started.
 
 # Tests
 
