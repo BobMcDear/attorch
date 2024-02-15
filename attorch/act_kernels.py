@@ -20,7 +20,7 @@ def sigmoid(input):
     Returns:
         Input transformed by sigmoid.
     """
-    return 1 / (1 + tl.exp(-input))
+    return (1 / (1 + tl.exp(-input)))
 
 
 @triton.jit
@@ -34,7 +34,8 @@ def sigmoid_grad(input):
     Returns:
         Gradient of sigmoid.
     """
-    return sigmoid(input) * (1 - sigmoid(input))
+    output_sigmoid = sigmoid(input)
+    return output_sigmoid * (1 - output_sigmoid)
 
 
 @triton.jit
@@ -48,7 +49,7 @@ def tanh(input):
     Returns:
         Input transformed by tanh.
     """
-    return 2 * sigmoid(2 * input) - 1
+    return tl.math.tanh(input)
 
 
 @triton.jit
@@ -122,7 +123,7 @@ def gelu_grad(input):
     """
     cdf = 0.5 * (1 + tl.math.erf(0.707106781 * input))
     cdf_grad = 0.39894228 * tl.exp(-0.5 * input * input)
-    return cdf_grad * input + cdf
+    return (cdf_grad * input + cdf)
 
 
 @triton.jit
@@ -136,7 +137,7 @@ def silu(input):
     Returns:
         Input transformed by SiLU.
     """
-    return input * sigmoid(input)
+    return (input * sigmoid(input))
 
 
 @triton.jit
@@ -150,7 +151,8 @@ def silu_grad(input):
     Returns:
         Gradient of SiLU.
     """
-    return input * sigmoid_grad(input) + sigmoid(input)
+    output_sigmoid = sigmoid(input)
+    return (output_sigmoid * (input * (1 - output_sigmoid) + 1))
 
 
 @triton.jit
@@ -166,6 +168,10 @@ def apply_act_func(input, act_func: tl.constexpr):
     Returns:
         Input transformed by the desired activation function.
     """
+    # All activation functions, except ReLU, require FP32 inputs.
+    if act_func != 'relu':
+        input = input.to(tl.float32)
+
     if act_func == 'sigmoid':
         output = sigmoid(input)
 
@@ -197,6 +203,10 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
     Returns:
         Gradient of the desired activation function.
     """
+    # All activation function derivatives, except ReLU's, require FP32 inputs.
+    if act_func != 'relu':
+        input = input.to(tl.float32)
+
     if act_func == 'sigmoid':
         output = sigmoid_grad(input)
 
