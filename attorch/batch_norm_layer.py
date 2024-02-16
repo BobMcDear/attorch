@@ -92,10 +92,10 @@ class BatchNormAutoGrad(torch.autograd.Function):
         if requires_grad:
             mean = torch.empty(feat_dim,
                                device=input.device,
-                               dtype=input.dtype)
+                               dtype=torch.float32)
             inv_std = torch.empty(feat_dim,
                                   device=input.device,
-                                  dtype=input.dtype)
+                                  dtype=torch.float32)
 
         else:
             mean = inv_std = None
@@ -152,12 +152,10 @@ class BatchNormAutoGrad(torch.autograd.Function):
             transpose = True
 
         batch_dim, feat_dim, spatial_dim = input_3d.shape
-        input_grad = torch.empty_like(output_grad_3d)
+        input_grad = torch.empty_like(input_3d)
 
         if ctx.affine:
-            weight_grad = torch.empty((feat_dim,),
-                                      device=input.device,
-                                      dtype=input.dtype)
+            weight_grad = torch.empty((feat_dim,), device=input.device)
             bias_grad = torch.empty_like(weight_grad)
 
         else:

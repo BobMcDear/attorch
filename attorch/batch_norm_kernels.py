@@ -117,7 +117,7 @@ def batch_norm_forward_kernel(
                                   input_batch_stride * batch_offset[:, None] +
                                   input_spatial_stride * spatial_offset[None, :])
             curr_input = tl.load(curr_input_pointer,
-                                 mask=batch_mask[:, None] & spatial_mask[None, :])
+                                 mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
 
             spatial_count = min(BLOCK_SIZE_SPATIAL, spatial_dim - block_ind * BLOCK_SIZE_SPATIAL)
             curr_count = spatial_count * batch_dim
@@ -176,7 +176,7 @@ def batch_norm_forward_kernel(
                                output_spatial_stride * spatial_offset[None, :])
 
         curr_input = tl.load(curr_input_pointer,
-                             mask=batch_mask[:, None] & spatial_mask[None, :])
+                             mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         output = weight * (curr_input - mean) * inv_std + bias
         tl.store(curr_output_pointer, output,
                  mask=batch_mask[:, None] & spatial_mask[None, :])
@@ -271,10 +271,10 @@ def batch_norm_backward_kernel(
                               input_spatial_stride * spatial_offset[None, :])
 
         curr_input = tl.load(curr_input_pointer,
-                             mask=batch_mask[:, None] & spatial_mask[None, :])
+                             mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         curr_pre_lin = (curr_input - mean) * inv_std
         curr_output_grad = tl.load(curr_output_grad_pointer,
-                                   mask=batch_mask[:, None] & spatial_mask[None, :])
+                                   mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
 
         term1 += tl.sum(curr_pre_lin * curr_output_grad)
         term2 += tl.sum(curr_output_grad)
@@ -310,10 +310,10 @@ def batch_norm_backward_kernel(
                                    input_grad_spatial_stride * spatial_offset[None, :])
 
         curr_input = tl.load(curr_input_pointer,
-                             mask=batch_mask[:, None] & spatial_mask[None, :])
+                             mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         curr_pre_lin = (curr_input - mean) * inv_std
         curr_output_grad = tl.load(curr_output_grad_pointer,
-                                   mask=batch_mask[:, None] & spatial_mask[None, :])
+                                   mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         curr_input_grad = inv_std * (weight * curr_output_grad - (term1 * curr_pre_lin + term2))
         tl.store(curr_input_grad_pointer, curr_input_grad,
                  mask=batch_mask[:, None] & spatial_mask[None, :])
