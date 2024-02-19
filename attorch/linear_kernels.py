@@ -50,7 +50,7 @@ def linear_forward_config(
         linear_forward_config(128, 32, 128, n_warps=4, n_stages=4),
         linear_forward_config(128, 64, 256, n_warps=8, n_stages=3),
     ],
-    key=['batch_dim', 'in_feat_dim', 'out_feat_dim'],
+    key=['batch_dim', 'in_feat_dim', 'out_feat_dim', 'fp16'],
 )
 @triton.jit
 def linear_forward_kernel(
@@ -61,6 +61,7 @@ def linear_forward_kernel(
     pre_act_batch_stride, pre_act_out_feat_stride,
     output_batch_stride, output_out_feat_stride,
     add_bias: tl.constexpr, act_func: tl.constexpr, save_pre_act: tl.constexpr,
+    fp16: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_IN_FEAT: tl.constexpr,
     BLOCK_SIZE_OUT_FEAT: tl.constexpr, GROUP_SIZE_BATCH: tl.constexpr,
     ):
@@ -103,6 +104,7 @@ def linear_forward_kernel(
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         save_pre_act: Flag for saving the pre-activation input.
+        fp16: Flag for loading the input, weights, and bias in FP16.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_IN_FEAT: Block size across the input feature dimension.
         BLOCK_SIZE_OUT_FEAT: Block size across the output feature dimension.
@@ -149,11 +151,19 @@ def linear_forward_kernel(
         weight_block = tl.load(curr_weight_pointer,
                                mask=out_feat_mask[None, :] & in_feat_mask[:, None])
 
+        if fp16:
+            input_block = input_block.to(tl.float16)
+            weight_block = weight_block.to(tl.float16)
+
         accum += tl.dot(input_block, weight_block)
 
     if add_bias:
         bias = tl.load(bias_pointer + out_feat_offset,
                        mask=out_feat_mask)
+
+        if fp16:
+            bias = bias.to(tl.float16)
+
         accum += bias[None, :]
 
     if act_func is not None:

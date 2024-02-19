@@ -13,6 +13,7 @@ from triton import cdiv
 from .act_kernels import act_func_backward_kernel
 from .linear_kernels import linear_forward_kernel
 from .types import Context, Device
+from .utils import get_output_dtype
 
 
 class LinearAutoGrad(torch.autograd.Function):
@@ -61,12 +62,13 @@ class LinearAutoGrad(torch.autograd.Function):
 
         requires_grad = (input.requires_grad or
                          weight.requires_grad or
-                         (bias is not None and bias.requires_grad))
-        save_pre_act = requires_grad and act_func is not None
+                         (bias is not None and bias.requires_grad)) or True
+        save_pre_act = requires_grad and (act_func is not None)
 
+        output_dtype = get_output_dtype(input.dtype, autocast='fp16')
         output = torch.empty((batch_dim, out_feat_dim),
                              device=input.device,
-                             dtype=input.dtype)
+                             dtype=output_dtype)
         pre_act = torch.empty_like(output) if save_pre_act else output
 
         # Launches a 1D grid, where each program outputs blocks of
@@ -80,11 +82,13 @@ class LinearAutoGrad(torch.autograd.Function):
                                     *flattened_input.stride(), *weight.stride(),
                                     *pre_act.stride(), *output.stride(),
                                     add_bias=bias is not None, act_func=act_func,
-                                    save_pre_act=save_pre_act)
+                                    save_pre_act=save_pre_act,
+                                    fp16=output_dtype is torch.float16)
 
 
         ctx.act_func = act_func
         ctx.bias_requires_grad = False if bias is None else bias.requires_grad
+        ctx.output_dtype = output_dtype
         if requires_grad:
             ctx.save_for_backward(input, pre_act if save_pre_act else None, weight)
 
@@ -132,9 +136,10 @@ class LinearAutoGrad(torch.autograd.Function):
 
         # Using PyTorch's matmul, but linear_forward_kernel
         # could have also been used.
-        input_grad = pre_act_grad @ weight.T if input.requires_grad else None
-        weight_grad = (flattened_input.T @ pre_act_grad
-                       if weight.requires_grad else None)
+        with torch.cuda.amp.autocast(dtype=ctx.output_dtype):
+            input_grad = pre_act_grad @ weight.T if input.requires_grad else None
+            weight_grad = (flattened_input.T @ pre_act_grad
+                           if weight.requires_grad else None)
         bias_grad = pre_act_grad.sum(dim=0) if ctx.bias_requires_grad else None
 
         # Pads output with None because a gradient is necessary for
