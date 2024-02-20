@@ -7,6 +7,7 @@ import triton
 import triton.language as tl
 
 from .act_kernels import apply_act_func
+from .utils import get_n_stages
 
 
 def linear_forward_config(
@@ -28,6 +29,7 @@ def linear_forward_config(
         GROUP_SIZE_BATCH: Group size across the batch dimension.
         n_warps: Number of warps to use for the kernel when compiled for GPUs.
         n_stages: Number of stages the compiler uses to software-pipeline.
+            On GPU architectures older than Ampere, this is fixed at 2.
 
     Returns:
         Kernel configuration.
@@ -36,7 +38,7 @@ def linear_forward_config(
                           'BLOCK_SIZE_IN_FEAT': BLOCK_SIZE_IN_FEAT,
                           'BLOCK_SIZE_OUT_FEAT': BLOCK_SIZE_OUT_FEAT,
                           'GROUP_SIZE_BATCH': GROUP_SIZE_BATCH},
-                          num_warps=n_warps, num_stages=n_stages)
+                          num_warps=n_warps, num_stages=get_n_stages(n_stages))
 
 
 @triton.autotune(

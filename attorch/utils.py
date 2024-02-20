@@ -9,6 +9,14 @@ import torch
 import triton
 
 
+def get_n_stages(n_stages: int = 2) -> int:
+    """
+    Receives number of stages for software pipelining and returns it as-is
+    if the GPU architecture is Ampere or newer and 2 otherwise.
+    """
+    return 2 if torch.cuda.get_device_capability()[0] < 8 else n_stages
+
+
 def get_output_dtype(
     input_dtype: torch.dtype = torch.float32,
     autocast: Optional[str] = None,
