@@ -62,7 +62,7 @@ class LinearAutoGrad(torch.autograd.Function):
 
         requires_grad = (input.requires_grad or
                          weight.requires_grad or
-                         (bias is not None and bias.requires_grad)) or True
+                         (bias is not None and bias.requires_grad))
         save_pre_act = requires_grad and (act_func is not None)
 
         output_dtype = get_output_dtype(input.dtype, autocast='fp16')
