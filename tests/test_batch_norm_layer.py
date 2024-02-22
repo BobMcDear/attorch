@@ -3,6 +3,7 @@ from typing import Tuple
 import pytest
 import torch
 from torch import nn
+from torch.cuda.amp import autocast
 from torch.nn import init
 
 import attorch
@@ -14,19 +15,23 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('momentum', [0.1, 0.2])
 @pytest.mark.parametrize('affine', [False, True])
 @pytest.mark.parametrize('track_running_stats', [False, True])
+@pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
+@pytest.mark.parametrize('amp', [False, True])
 def test_batch_norm_layer(
     shape: Tuple[int, ...],
     eps: float,
     momentum: float,
     affine: bool,
     track_running_stats: bool,
+    input_dtype: bool,
+    amp: bool,
     ) -> None:
-    if shape[0] == 1:
+    if shape[0] == 1 or (input_dtype is torch.float16 and not amp):
         return
 
     bn_name = 'BatchNorm2d' if len(shape) == 4 else 'BatchNorm1d'
-    attorch_input = create_input(shape)
-    pytorch_input = create_input(shape)
+    attorch_input = create_input(shape, dtype=input_dtype)
+    pytorch_input = create_input(shape, dtype=input_dtype)
 
     attorch_batch_norm = getattr(attorch, bn_name)(num_features=shape[1],
                                                    eps=eps, momentum=momentum,
@@ -47,8 +52,9 @@ def test_batch_norm_layer(
         init.normal_(pytorch_batch_norm.weight)
         init.normal_(pytorch_batch_norm.bias)
 
-    attorch_output = attorch_batch_norm(attorch_input)
-    pytorch_output = pytorch_batch_norm(pytorch_input)
+    with autocast(enabled=amp):
+        attorch_output = attorch_batch_norm(attorch_input)
+        pytorch_output = pytorch_batch_norm(pytorch_input)
 
     assert_close((attorch_output, pytorch_output),
                  (attorch_batch_norm.running_mean, pytorch_batch_norm.running_mean),
@@ -63,7 +69,7 @@ def test_batch_norm_layer(
                       if affine else (None, None))
     assert_close((attorch_input.grad, pytorch_input.grad),
                  weight_grad_pair, bias_grad_pair,
-                 rtol=1e-2, atol=1e-4)
+                 rtol=1e-2, atol=1e-3)
 
     attorch_batch_norm.eval()
     pytorch_batch_norm.eval()
