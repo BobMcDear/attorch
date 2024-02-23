@@ -1,5 +1,5 @@
 """
-Kernels for batch normalization.
+Kernels for batch normalization with fused activation.
 """
 
 
@@ -9,6 +9,7 @@ import triton
 import triton.language as tl
 from triton import next_power_of_2
 
+from .act_kernels import apply_act_func
 from .utils import warps_kernel_configs
 
 
@@ -38,18 +39,20 @@ def BLOCK_SIZE_SPATIAL_heuristic(args: Dict) -> int:
 @triton.jit
 def batch_norm_forward_kernel(
     input_pointer, weight_pointer, bias_pointer,
-    mean_pointer, inv_std_pointer, output_pointer,
+    mean_pointer, inv_std_pointer, pre_act_pointer, output_pointer,
     running_mean_pointer, running_var_pointer,
     batch_dim, spatial_dim,
     input_batch_stride, input_feat_stride, input_spatial_stride,
+    pre_act_batch_stride, pre_act_feat_stride, pre_act_spatial_stride,
     output_batch_stride, output_feat_stride, output_spatial_stride,
     momentum, eps,
     affine: tl.constexpr, save_stats: tl.constexpr,
     track_running_stats: tl.constexpr, is_train: tl.constexpr,
+    act_func: tl.constexpr, save_pre_act: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_SPATIAL: tl.constexpr,
     ):
     """
-    Batch-normalizes the input.
+    Batch-normalizes the input, optionally fusing an activation function.
 
     Args:
         input_pointer: Pointer to the input to layer-normalize.
@@ -64,6 +67,9 @@ def batch_norm_forward_kernel(
         inv_std_pointer: Pointer to an optional container the input's inverse
             standard deviation is written to if save_stats is True.
             The container, if provided, must be of shape [feat_dim].
+        pre_act_pointer: Pointer to an optional container the pre-activation input
+            is written to if act_func is not None and save_pre_act is True.
+            The container, if provided, must be of shape [batch_dim, feat_dim, spatial_dim].
         output_pointer: Pointer to a container the result is written to.
             The container must be of shape [batch_dim, feat_dim, spatial_dim].
         running_mean_pointer: Pointer to an optional container the input's running
@@ -80,6 +86,12 @@ def batch_norm_forward_kernel(
             input's feature dimension.
         input_spatial_stride: Stride necessary to jump one element along the
             input's spatial dimension.
+        pre_act_batch_stride: Stride necessary to jump one element along the
+            pre-activation input container's batch dimension.
+        pre_act_out_feat_stride: Stride necessary to jump one element along the
+            pre-activation input container's feature dimension.
+        pre_act_spatial_stride: Stride necessary to jump one element along the
+            pre-activation input container's spatial dimension.
         output_batch_stride: Stride necessary to jump one element along the
             output container's batch dimension.
         output_feat_stride: Stride necessary to jump one element along the
@@ -94,6 +106,9 @@ def batch_norm_forward_kernel(
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         is_train: Flag indicating if the model is in training mode.
+        act_func: Name of activation function to apply, with None for identity.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+        save_pre_act: Flag for saving the pre-activation input.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_SPATIAL: Block size across the spatial dimension.
     """
@@ -178,6 +193,18 @@ def batch_norm_forward_kernel(
         curr_input = tl.load(curr_input_pointer,
                              mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         output = weight * (curr_input - mean) * inv_std + bias
+
+        if act_func is not None:
+            if save_pre_act:
+                curr_pre_act_pointer = (pre_act_pointer +
+                                        pre_act_feat_stride * feat_pid +
+                                        pre_act_batch_stride * batch_offset[:, None] +
+                                        pre_act_spatial_stride * spatial_offset[None, :])
+                tl.store(curr_pre_act_pointer, output,
+                         mask=batch_mask[:, None] & spatial_mask[None, :])
+
+            output = apply_act_func(output, act_func)
+
         tl.store(curr_output_pointer, output,
                  mask=batch_mask[:, None] & spatial_mask[None, :])
 

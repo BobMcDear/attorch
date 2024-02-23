@@ -1,5 +1,5 @@
 """
-Batch normalization with PyTorch autodiff support.
+Batch normalization with fused activation with PyTorch autodiff support.
 """
 
 
@@ -8,7 +8,9 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch import nn
+from triton import cdiv
 
+from .act_kernels import act_func_backward_kernel
 from .batch_norm_kernels import batch_norm_backward_kernel, batch_norm_forward_kernel
 from .types import Context, Device
 
@@ -48,9 +50,10 @@ class BatchNormAutoGrad(torch.autograd.Function):
         momentum: float = 0.1,
         eps: float = 1e-5,
         track_running_stats: bool = True,
+        act_func: Optional[str] = None,
         ) -> Tensor:
         """
-        Batch-normalizes the input.
+        Batch-normalizes the input, optionally fusing an activation function.
 
         Args:
             ctx: Context for variable storage.
@@ -70,9 +73,11 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 to avoid division by zero.
             track_running_stats: Flag for tracking running mean and variance if
                 is_train is also True.
+            act_func: Name of activation function to apply, with None for identity.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
 
         Returns:
-            Batch-normalized input.
+            Batch-normalized input, potentially with fused activation.
         """
         input_3d = make_3d_for_bn(input)
         transpose = False
@@ -81,13 +86,15 @@ class BatchNormAutoGrad(torch.autograd.Function):
             input_3d = input_3d.transpose(0, -1)
             transpose = True
 
-        batch_dim, feat_dim, spatial_dim = input_3d.shape
-        output = torch.empty_like(input_3d)
-
         affine = weight is not None and bias is not None
         requires_grad = (input.requires_grad or
                          (affine and weight.requires_grad) or
                          (affine and bias.requires_grad))
+        save_pre_act = requires_grad and (act_func is not None)
+
+        batch_dim, feat_dim, spatial_dim = input_3d.shape
+        output = torch.empty_like(input_3d)
+        pre_act = torch.empty_like(input_3d) if save_pre_act else output
 
         if requires_grad:
             mean = torch.empty(feat_dim,
@@ -106,22 +113,29 @@ class BatchNormAutoGrad(torch.autograd.Function):
         # Launches 1D grid where each program operates over one feature.
         grid = lambda _: (feat_dim,)
         batch_norm_forward_kernel[grid](input_3d, weight, bias,
-                                        mean, inv_std, output,
+                                        mean, inv_std, pre_act, output,
                                         running_mean, running_var,
                                         batch_dim, spatial_dim,
-                                        *input_3d.stride(), *output.stride(),
+                                        *input_3d.stride(), *pre_act.stride(),
+                                        *output.stride(),
                                         momentum, eps,
                                         affine=affine,
                                         save_stats=requires_grad,
                                         track_running_stats=track_running_stats,
-                                        is_train=training)
+                                        is_train=training,
+                                        act_func=act_func,
+                                        save_pre_act=save_pre_act)
 
         if transpose:
             output = output.transpose(0, -1)
+            if save_pre_act:
+                pre_act = pre_act.transpose(0, -1)
 
         ctx.affine = affine
+        ctx.act_func = act_func
         if requires_grad:
-            ctx.save_for_backward(input, mean, inv_std, weight)
+            ctx.save_for_backward(input, mean, inv_std, weight,
+                                  pre_act if save_pre_act else None)
 
         return output.view_as(input)
 
@@ -141,14 +155,29 @@ class BatchNormAutoGrad(torch.autograd.Function):
         Returns:
             Input gradient of batch normalization.
         """
-        (input, mean, inv_std, weight) = ctx.saved_tensors
+        (input, mean, inv_std, weight, pre_act) = ctx.saved_tensors
         input_3d = make_3d_for_bn(input)
-        output_grad_3d = make_3d_for_bn(output_grad)
+
+        if ctx.act_func is None:
+            pre_act_grad = make_3d_for_bn(output_grad)
+
+        else:
+            size = output_grad.numel()
+            pre_act_grad = torch.empty(size, dtype=pre_act.dtype,
+                                       device=pre_act.device)
+
+            # Launches 1D grid where each program operates over
+            # BLOCK_SIZE elements.
+            grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
+            act_func_backward_kernel[grid](output_grad.flatten(), pre_act,
+                                           pre_act_grad, size, ctx.act_func)
+
+            pre_act_grad = pre_act_grad.view_as(pre_act)
 
         transpose = False
         if input_3d.shape[-1] > 1:
             input_3d = input_3d.transpose(0, -1)
-            output_grad_3d = output_grad_3d.transpose(0, -1)
+            pre_act_grad = pre_act_grad.transpose(0, -1)
             transpose = True
 
         batch_dim, feat_dim, spatial_dim = input_3d.shape
@@ -163,10 +192,10 @@ class BatchNormAutoGrad(torch.autograd.Function):
 
         # Launches 1D grid where each program operates over one feature.
         grid = lambda _: (feat_dim,)
-        batch_norm_backward_kernel[grid](output_grad_3d, input_3d, mean, inv_std, weight,
+        batch_norm_backward_kernel[grid](pre_act_grad, input_3d, mean, inv_std, weight,
                                          input_grad, weight_grad, bias_grad,
                                          batch_dim, spatial_dim,
-                                         *output_grad_3d.stride(),
+                                         *pre_act_grad.stride(),
                                          *input_3d.stride(), *input_grad.stride(),
                                          affine=ctx.affine)
 
@@ -177,12 +206,12 @@ class BatchNormAutoGrad(torch.autograd.Function):
         # all input arguments.
         return (input_grad.view_as(input), None,
                 weight_grad, bias_grad,
-                None, None, None, None, None)
+                None, None, None, None, None, None)
 
 
 class BatchNorm1d(nn.BatchNorm1d):
     """
-    Batch-normalizes the 2D or 3D input.
+    Batch-normalizes the 2D or 3D input, optionally fusing an activation function.
     See also base class.
 
     Args:
@@ -193,6 +222,8 @@ class BatchNorm1d(nn.BatchNorm1d):
         affine: Flag for performing an affine transformation on the normalized output.
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
+        act_func: Name of activation function to apply, with None for identity.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         device: Device to use. Only CUDA is supported.
         dtype: Dtype of layer. Only float32 is supported.
 
@@ -207,6 +238,7 @@ class BatchNorm1d(nn.BatchNorm1d):
         momentum: float = 0.1,
         affine: bool = True,
         track_running_stats: bool = True,
+        act_func: Optional[str] = None,
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
@@ -218,6 +250,7 @@ class BatchNorm1d(nn.BatchNorm1d):
 
         super().__init__(num_features, eps, momentum, affine,
                          track_running_stats, device, dtype)
+        self.act_func = act_func
 
     def forward(self, input: Tensor) -> Tensor:
         self._check_input_dim(input)
@@ -226,12 +259,13 @@ class BatchNorm1d(nn.BatchNorm1d):
                                        self.weight, self.bias,
                                        self.running_mean, self.running_var,
                                        self.momentum, self.eps,
-                                       self.track_running_stats)
+                                       self.track_running_stats,
+                                       self.act_func)
 
 
 class BatchNorm2d(nn.BatchNorm2d):
     """
-    Batch-normalizes the 4D input.
+    Batch-normalizes the 4D input, optionally fusing an activation function.
     See also base class.
 
     Args:
@@ -242,6 +276,8 @@ class BatchNorm2d(nn.BatchNorm2d):
         affine: Flag for performing an affine transformation on the normalized output.
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
+        act_func: Name of activation function to apply, with None for identity.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
         device: Device to use. Only CUDA is supported.
         dtype: Dtype of layer. Only float32 is supported.
 
@@ -256,6 +292,7 @@ class BatchNorm2d(nn.BatchNorm2d):
         momentum: float = 0.1,
         affine: bool = True,
         track_running_stats: bool = True,
+        act_func: Optional[str] = None,
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
@@ -267,6 +304,7 @@ class BatchNorm2d(nn.BatchNorm2d):
 
         super().__init__(num_features, eps, momentum, affine,
                          track_running_stats, device, dtype)
+        self.act_func = act_func
 
     def forward(self, input: Tensor) -> Tensor:
         self._check_input_dim(input)
@@ -274,4 +312,5 @@ class BatchNorm2d(nn.BatchNorm2d):
         return BatchNormAutoGrad.apply(input, self.training, self.weight, self.bias,
                                        self.running_mean, self.running_var,
                                        self.momentum, self.eps,
-                                       self.track_running_stats)
+                                       self.track_running_stats,
+                                       self.act_func)
