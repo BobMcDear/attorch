@@ -1,10 +1,11 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pytest
 import torch
 from torch import nn
 from torch.cuda.amp import autocast
 from torch.nn import init
+from torch.nn import functional as F
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -15,6 +16,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('momentum', [0.1, 0.2])
 @pytest.mark.parametrize('affine', [False, True])
 @pytest.mark.parametrize('track_running_stats', [False, True])
+@pytest.mark.parametrize('act_func', [None, 'sigmoid', 'tanh', 'relu', 'gelu', 'silu'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_batch_norm_layer(
@@ -23,6 +25,7 @@ def test_batch_norm_layer(
     momentum: float,
     affine: bool,
     track_running_stats: bool,
+    act_func: Optional[str],
     input_dtype: bool,
     amp: bool,
     ) -> None:
@@ -36,12 +39,14 @@ def test_batch_norm_layer(
     attorch_batch_norm = getattr(attorch, bn_name)(num_features=shape[1],
                                                    eps=eps, momentum=momentum,
                                                    affine=affine,
-                                                   track_running_stats=track_running_stats)
+                                                   track_running_stats=track_running_stats,
+                                                   act_func=act_func)
     pytorch_batch_norm = getattr(nn, bn_name)(num_features=shape[1],
                                               eps=eps, momentum=momentum,
                                               affine=affine,
                                               track_running_stats=track_running_stats,
                                               device='cuda')
+    pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func)
 
     if affine:
         torch.manual_seed(0)
@@ -54,7 +59,7 @@ def test_batch_norm_layer(
 
     with autocast(enabled=amp):
         attorch_output = attorch_batch_norm(attorch_input)
-        pytorch_output = pytorch_batch_norm(pytorch_input)
+        pytorch_output = pytorch_act(pytorch_batch_norm(pytorch_input))
 
     assert_close((attorch_output, pytorch_output),
                  (attorch_batch_norm.running_mean, pytorch_batch_norm.running_mean),
@@ -74,8 +79,9 @@ def test_batch_norm_layer(
     attorch_batch_norm.eval()
     pytorch_batch_norm.eval()
 
-    attorch_output = attorch_batch_norm(attorch_input)
-    pytorch_output = pytorch_batch_norm(pytorch_input)
+    with autocast(enabled=amp):
+        attorch_output = attorch_batch_norm(attorch_input)
+        pytorch_output = pytorch_act(pytorch_batch_norm(pytorch_input))
 
     assert_close((attorch_output, pytorch_output),
                  (attorch_batch_norm.running_mean, pytorch_batch_norm.running_mean),
