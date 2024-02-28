@@ -6,6 +6,8 @@ Kernels for convolution.
 import triton
 import triton.language as tl
 
+from .utils import get_n_stages
+
 
 def conv2d_forward_config(
     BLOCK_SIZE_BATCH_HEIGHT_WIDTH: int,
@@ -32,7 +34,7 @@ def conv2d_forward_config(
     return triton.Config({'BLOCK_SIZE_BATCH_HEIGHT_WIDTH': BLOCK_SIZE_BATCH_HEIGHT_WIDTH,
                           'BLOCK_SIZE_IN_FEAT': BLOCK_SIZE_IN_FEAT,
                           'BLOCK_SIZE_OUT_FEAT': BLOCK_SIZE_OUT_FEAT},
-                          num_warps=n_warps, num_stages=n_stages)
+                          num_warps=n_warps, num_stages=get_n_stages(n_stages))
 
 
 @triton.autotune(
@@ -59,7 +61,7 @@ def conv2d_forward_config(
          'kernel_height', 'kernel_width',
          'stride_height', 'stride_width',
          'padding_height', 'padding_width',
-         'groups'],
+         'groups', 'fp16'],
 )
 @triton.jit
 def conv2d_forward_kernel(
@@ -72,7 +74,7 @@ def conv2d_forward_kernel(
     kernel_height: tl.constexpr, kernel_width: tl.constexpr,
     stride_height: tl.constexpr, stride_width: tl.constexpr,
     padding_height: tl.constexpr, padding_width: tl.constexpr,
-    groups: tl.constexpr,
+    groups: tl.constexpr, fp16: tl.constexpr,
     BLOCK_SIZE_BATCH_HEIGHT_WIDTH: tl.constexpr, BLOCK_SIZE_IN_FEAT: tl.constexpr,
     BLOCK_SIZE_OUT_FEAT: tl.constexpr,
     ):
@@ -124,6 +126,7 @@ def conv2d_forward_kernel(
         padding_height: Padding applied to the input across the height dimension.
         padding_width: Padding applied to the input across the width dimension.
         groups: Number of groups for the convolution.
+        fp16: Flag for loading the input and weights in FP16.
         BLOCK_SIZE_BATCH_HEIGHT_WIDTH: Block size across the batch, height, and
             width dimensions.
         BLOCK_SIZE_IN_FEAT: Block size across the input feature dimension.
@@ -183,6 +186,10 @@ def conv2d_forward_kernel(
 
                 input_block = tl.load(curr_input_pointer, mask=input_mask)
                 weight_block = tl.load(curr_weight_pointer, mask=weight_mask)
+
+                if fp16:
+                    input_block = input_block.to(tl.float16)
+                    weight_block = weight_block.to(tl.float16)
 
                 accum += tl.dot(input_block, weight_block)
 

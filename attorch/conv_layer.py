@@ -12,6 +12,7 @@ from triton import cdiv
 
 from .conv_kernels import conv2d_forward_kernel
 from .types import Context, Device
+from .utils import get_output_dtype
 
 
 def conv2d_output_size(
@@ -87,9 +88,10 @@ class Conv2dAutoGrad(torch.autograd.Function):
         out_width = conv2d_output_size(in_width, kernel_width,
                                      stride_width, padding_width)
 
+        output_dtype = get_output_dtype(input.dtype, autocast='fp16')
         output = torch.empty((batch_dim, out_feat_dim, out_height, out_width),
                              device=input.device,
-                             dtype=input.dtype)
+                             dtype=output_dtype)
 
         # Launches a 3D grid, where each program outputs blocks of
         # BLOCK_SIZE_BATCH_HEIGHT_WIDTH along the batch, height, and width dimensions,
@@ -106,7 +108,8 @@ class Conv2dAutoGrad(torch.autograd.Function):
                                     kernel_height, kernel_width,
                                     stride_height, stride_width,
                                     padding_height, padding_width,
-                                    groups=groups)
+                                    groups=groups,
+                                    fp16=output_dtype is torch.float16)
 
         if bias is not None:
             # Adding bias in the kernel becomes buggy when groups != 1.
@@ -120,6 +123,7 @@ class Conv2dAutoGrad(torch.autograd.Function):
         ctx.padding = (padding_height, padding_width)
         ctx.groups = groups
         ctx.bias_requires_grad = False if bias is None else bias.requires_grad
+        ctx.output_dtype = output_dtype
         if requires_grad:
             ctx.save_for_backward(input, weight)
 
@@ -143,6 +147,9 @@ class Conv2dAutoGrad(torch.autograd.Function):
         """
         input, weight = ctx.saved_tensors
 
+        input = input.to(ctx.output_dtype)
+        weight = weight.to(ctx.output_dtype)
+
         # The backward pass for the convolution operation requires dilation,
         # which is not supported by the kernel.
         input_grad = nn.grad.conv2d_input(input.shape, weight, output_grad,
@@ -151,8 +158,8 @@ class Conv2dAutoGrad(torch.autograd.Function):
         weight_grad = nn.grad.conv2d_weight(input, weight.shape, output_grad,
                                             ctx.stride, ctx.padding,
                                             groups=ctx.groups)
-        bias_grad = output_grad.sum(dim=(0, 2, 3)) if ctx.bias_requires_grad else None
-
+        bias_grad = (output_grad.sum(dim=(0, 2, 3)).to(ctx.output_dtype)
+                     if ctx.bias_requires_grad else None)
 
         return input_grad, weight_grad, bias_grad, None, None, None, None, None
 
