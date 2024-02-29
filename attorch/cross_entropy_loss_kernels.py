@@ -69,14 +69,14 @@ def cross_entropy_loss_forward_kernel(
                       input_feat_stride * feat_offset[None, :])
 
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :],
-                    other=-float('inf'))
-    pred = tl.load(pred_pointer, mask=batch_mask)
+                    other=-float('inf')).to(tl.float32)
+    pred = tl.load(pred_pointer, mask=batch_mask).to(tl.float32)
     mx = tl.max(input, axis=1)
     input -= mx[:, None]
     loss = tl.log(tl.sum(tl.exp(input), axis=1)) - pred + mx
 
     if weighted:
-        weight = tl.load(weight_pointer + target, mask=batch_mask)
+        weight = tl.load(weight_pointer + target, mask=batch_mask).to(tl.float32)
         loss *= weight
         tl.store(sum_weights_pointer + batch_pid, tl.sum(weight))
 
@@ -147,12 +147,12 @@ def cross_entropy_loss_backward_kernel(
                            input_grad_feat_stride * feat_offset[None, :])
 
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :],
-                    other=-float('inf'))
+                    other=-float('inf')).to(tl.float32)
     input -= tl.max(input, axis=1)[:, None]
     numerator = tl.exp(input)
     softmax = numerator / tl.sum(numerator, axis=1)[:, None]
 
-    output_grad = tl.load(output_grad_pointer)
+    output_grad = tl.load(output_grad_pointer).to(tl.float32)
     target = tl.load(target_pointer + batch_offset, mask=batch_mask)
     broadcasted_feat_offset = tl.broadcast_to(feat_offset[None, :],
                                               (BLOCK_SIZE_BATCH, BLOCK_SIZE_FEAT))
@@ -161,7 +161,7 @@ def cross_entropy_loss_backward_kernel(
     input_grad = output_grad * (softmax - (broadcasted_feat_offset == broadcasted_target))
 
     if weighted:
-        weight = tl.load(weight_pointer + target, mask=batch_mask)
+        weight = tl.load(weight_pointer + target, mask=batch_mask).to(tl.float32)
         sum_weights = tl.load(sum_weights_pointer)
         input_grad *= weight[:, None] / sum_weights
 

@@ -14,6 +14,7 @@ from .cross_entropy_loss_kernels import cross_entropy_loss_backward_kernel, \
     cross_entropy_loss_forward_kernel
 from .softmax_kernels import BLOCK_SIZE_BATCH_heuristic
 from .types import Context
+from .utils import get_output_dtype
 
 
 class CrossEntropyLossAutoGrad(torch.autograd.Function):
@@ -54,10 +55,14 @@ class CrossEntropyLossAutoGrad(torch.autograd.Function):
                                                        'feat_dim': feat_dim})
         out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
         weighted = weight is not None
-        output = torch.empty(out_batch_dim, dtype=input.dtype, device=input.device)
+
+        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+        output = torch.empty(out_batch_dim,
+                             dtype=output_dtype,
+                             device=input.device)
 
         if weighted:
-            sum_weights = torch.empty_like(output)
+            sum_weights = torch.empty_like(output, dtype=torch.float32)
 
         else:
             sum_weights = None
@@ -76,6 +81,7 @@ class CrossEntropyLossAutoGrad(torch.autograd.Function):
 
         ctx.sum_weights = sum_weights
         ctx.weight = weight
+        ctx.output_dtype = output_dtype
         if input.requires_grad:
             ctx.save_for_backward(input, target)
 
@@ -99,7 +105,7 @@ class CrossEntropyLossAutoGrad(torch.autograd.Function):
         """
         (input, target) = ctx.saved_tensors
         batch_dim, feat_dim = input.shape
-        input_grad = torch.empty_like(input)
+        input_grad = torch.empty_like(input, dtype=ctx.output_dtype)
 
         # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
         grid = lambda META: (cdiv(len(input), META['BLOCK_SIZE_BATCH']),)
