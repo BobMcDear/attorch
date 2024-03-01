@@ -3,6 +3,7 @@ from typing import Tuple, Union
 import pytest
 import torch
 from torch import nn
+from torch.cuda.amp import autocast
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -15,6 +16,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('padding', [0, 1, 3, -1])
 @pytest.mark.parametrize('groups', [1, 2, 4, -1])
 @pytest.mark.parametrize('bias', [False, True])
+@pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
+@pytest.mark.parametrize('amp', [False, True])
 def test_conv2d_layer(
     input_shape: Tuple[int, ...],
     out_dim: int,
@@ -23,7 +26,12 @@ def test_conv2d_layer(
     padding: Union[int, Tuple[int, int]],
     groups: int,
     bias: bool,
+    input_dtype: bool,
+    amp: bool,
     ) -> None:
+    if input_dtype is torch.float16 and not amp:
+        return
+
     if padding == -1:
         padding = kernel_size // 2
 
@@ -33,8 +41,8 @@ def test_conv2d_layer(
     if input_shape[1] % groups != 0:
         groups = 1
 
-    attorch_input = create_input(input_shape)
-    pytorch_input = create_input(input_shape)
+    attorch_input = create_input(input_shape, dtype=input_dtype)
+    pytorch_input = create_input(input_shape, dtype=input_dtype)
 
     torch.manual_seed(0)
     attorch_conv2d = attorch.Conv2d(input_shape[1], out_dim, kernel_size,
@@ -46,8 +54,9 @@ def test_conv2d_layer(
                                stride=stride, padding=padding,
                                groups=groups, bias=bias, device='cuda')
 
-    attorch_output = attorch_conv2d(attorch_input)
-    pytorch_output = pytorch_conv2d(pytorch_input)
+    with autocast(enabled=amp):
+        attorch_output = attorch_conv2d(attorch_input)
+        pytorch_output = pytorch_conv2d(pytorch_input)
 
     assert_close((attorch_output, pytorch_output), rtol=1e-3, atol=1e-2)
 
