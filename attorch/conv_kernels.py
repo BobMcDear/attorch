@@ -6,7 +6,7 @@ Kernels for convolution.
 import triton
 import triton.language as tl
 
-from .utils import get_n_stages
+from .utils import allow_tf32, get_n_stages
 
 
 def conv2d_forward_config(
@@ -63,6 +63,7 @@ def conv2d_forward_config(
          'padding_height', 'padding_width',
          'groups', 'fp16'],
 )
+@triton.heuristics({'tf32': lambda _: allow_tf32()})
 @triton.jit
 def conv2d_forward_kernel(
     input_pointer, weight_pointer, output_pointer,
@@ -74,7 +75,7 @@ def conv2d_forward_kernel(
     kernel_height: tl.constexpr, kernel_width: tl.constexpr,
     stride_height: tl.constexpr, stride_width: tl.constexpr,
     padding_height: tl.constexpr, padding_width: tl.constexpr,
-    groups: tl.constexpr, fp16: tl.constexpr,
+    groups: tl.constexpr, fp16: tl.constexpr, tf32: tl.constexpr,
     BLOCK_SIZE_BATCH_HEIGHT_WIDTH: tl.constexpr, BLOCK_SIZE_IN_FEAT: tl.constexpr,
     BLOCK_SIZE_OUT_FEAT: tl.constexpr,
     ):
@@ -127,6 +128,7 @@ def conv2d_forward_kernel(
         padding_width: Padding applied to the input across the width dimension.
         groups: Number of groups for the convolution.
         fp16: Flag for loading the input and weights in FP16.
+        tf32: Flag for performing matrix products in TF32.
         BLOCK_SIZE_BATCH_HEIGHT_WIDTH: Block size across the batch, height, and
             width dimensions.
         BLOCK_SIZE_IN_FEAT: Block size across the input feature dimension.
@@ -191,7 +193,7 @@ def conv2d_forward_kernel(
                     input_block = input_block.to(tl.float16)
                     weight_block = weight_block.to(tl.float16)
 
-                accum += tl.dot(input_block, weight_block)
+                accum += tl.dot(input_block, weight_block, allow_tf32=tf32)
 
     output_pointer += ((output_batch_stride * batch_offset)[:, None] +
                        (output_out_feat_stride * (group_pid * out_group_dim + output_feat_offset))[None, :] +
