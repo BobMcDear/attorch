@@ -11,8 +11,8 @@ attorch is a small subset of PyTorch's neural network modules, written purely in
 * ```attorch.LogSoftmax```: Normalizes the input using softmax and takes its log.
 * ```attorch.Softmax```: Normalizes the input using softmax.
 * ```attorch.Softmin```: Normalizes the input using softmin.
-* ```attorch.BatchNorm1d```: Batch-normalizes the 2D or 3D input.
-* ```attorch.BatchNorm2d```: Batch-normalizes the 4D input.
+* ```attorch.BatchNorm1d```: Batch-normalizes the 2D or 3D input, optionally fusing an activation function and adding a residual to the pre-activation result.
+* ```attorch.BatchNorm2d```: Batch-normalizes the 4D input, optionally fusing an activation function and adding a residual to the pre-activation result.
 * ```attorch.LayerNorm```: Layer-normalizes the input.
 * ```attorch.Linear```: Linearly transforms the input using weights, optionally adding bias and fusing an activation function.
 * ```attorch.Dropout```: Randomly zeroes elements in the input during training.
