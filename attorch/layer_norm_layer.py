@@ -13,6 +13,7 @@ from triton import cdiv
 from .layer_norm_kernels import layer_norm_backward_kernel, layer_norm_forward_kernel
 from .softmax_kernels import BLOCK_SIZE_BATCH_heuristic
 from .types import Context, Device
+from .utils import get_output_dtype
 
 
 class LayerNormAutoGrad(torch.autograd.Function):
@@ -47,7 +48,9 @@ class LayerNormAutoGrad(torch.autograd.Function):
         flattened_input = input.unsqueeze(0) if input.ndim == 1 else input
         flattened_input = flattened_input.flatten(0, -2)
         batch_dim, feat_dim = flattened_input.shape
-        output = torch.empty_like(flattened_input)
+
+        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+        output = torch.empty_like(flattened_input, dtype=output_dtype)
 
         scale_by_weight = weight is not None
         add_bias = scale_by_weight and bias is not None
@@ -58,10 +61,10 @@ class LayerNormAutoGrad(torch.autograd.Function):
         if requires_grad:
             mean = torch.empty(batch_dim,
                                device=input.device,
-                               dtype=input.dtype)
+                               dtype=torch.float32)
             inv_std = torch.empty(batch_dim,
                                   device=input.device,
-                                  dtype=input.dtype)
+                                  dtype=torch.float32)
 
         else:
             mean = inv_std = None
@@ -79,6 +82,7 @@ class LayerNormAutoGrad(torch.autograd.Function):
 
         ctx.scale_by_weight = scale_by_weight
         ctx.add_bias = add_bias
+        ctx.output_dtype = output_dtype
         if requires_grad:
             ctx.save_for_backward(flattened_input, mean, inv_std, weight)
 
@@ -105,7 +109,8 @@ class LayerNormAutoGrad(torch.autograd.Function):
         flattened_output_grad = output_grad.view_as(flattened_input)
 
         batch_dim, feat_dim = flattened_output_grad.shape
-        input_grad = torch.empty_like(flattened_output_grad)
+        input_grad = torch.empty_like(flattened_output_grad,
+                                      dtype=ctx.output_dtype)
 
         if scale_by_weight:
             BLOCK_SIZE_BATCH = BLOCK_SIZE_BATCH_heuristic({'batch_dim': batch_dim,
@@ -113,12 +118,10 @@ class LayerNormAutoGrad(torch.autograd.Function):
             out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
 
             weight_grad = torch.empty((out_batch_dim, feat_dim),
-                                      device=flattened_input.device,
-                                      dtype=flattened_input.dtype)
+                                      device=flattened_input.device)
             if add_bias:
                 bias_grad = torch.empty((out_batch_dim, feat_dim),
-                                        device=flattened_input.device,
-                                        dtype=flattened_input.dtype)
+                                        device=flattened_input.device)
 
             else:
                 bias_grad = None

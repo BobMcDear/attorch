@@ -79,7 +79,8 @@ def layer_norm_forward_kernel(
     output_pointer += (output_batch_stride * batch_offset[:, None] +
                        output_feat_stride * feat_offset[None, :])
 
-    input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :])
+    input = tl.load(input_pointer,
+                    mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     mean = tl.sum(input, axis=1) / feat_dim
     diff = tl.where(feat_mask[None, :], input - tl.expand_dims(mean, axis=1), 0)
     inv_std = 1 / tl.sqrt(tl.sum(diff * diff, axis=1) / feat_dim + eps)
@@ -186,8 +187,8 @@ def layer_norm_backward_kernel(
                            input_grad_feat_stride * feat_offset[None, :])
 
     output_grad = tl.load(output_grad_pointer,
-                          mask=batch_mask[:, None] & feat_mask[None, :])
-    input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :])
+                          mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
+    input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     mean = tl.load(mean_pointer + batch_offset, mask=batch_mask)
     inv_std = tl.load(inv_std_pointer + batch_offset, mask=batch_mask)
     pre_lin = ((input - tl.expand_dims(mean, axis=1)) *
