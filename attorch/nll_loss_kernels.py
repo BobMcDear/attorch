@@ -109,12 +109,12 @@ def nll_loss_forward_kernel(
                       input_batch_stride * batch_offset[:, None] +
                       input_spatial_stride * spatial_offset[None, :])
     input = tl.load(input_pointer,
-                    mask=batch_mask[:, None] & spatial_mask[None, :])
+                    mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
 
     output = -input
     if weighted:
         weight = tl.load(weight_pointer + target,
-                         mask=batch_mask[:, None] & spatial_mask[None, :])
+                         mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         output *= weight
 
     if reduction == 'none':
@@ -209,7 +209,7 @@ def nll_loss_backward_kernel(
                                 output_grad_feat_stride * spatial_offset[None, :])
         output_grad_mask = batch_mask[:, None] & spatial_mask[None, :]
 
-    output_grad = tl.load(output_grad_pointer, mask=output_grad_mask)
+    output_grad = tl.load(output_grad_pointer, mask=output_grad_mask).to(tl.float32)
     input_grad = -output_grad
 
     target_pointer += (target_batch_stride * batch_offset[:, None] +
@@ -219,7 +219,7 @@ def nll_loss_backward_kernel(
 
     if weighted:
         weight = tl.load(weight_pointer + target,
-                         mask=batch_mask[:, None] & spatial_mask[None, :])
+                         mask=batch_mask[:, None] & spatial_mask[None, :]).to(tl.float32)
         input_grad *= weight
 
         if reduction == 'mean':

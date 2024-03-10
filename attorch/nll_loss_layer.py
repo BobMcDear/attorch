@@ -13,6 +13,7 @@ from triton import cdiv
 from .nll_loss_kernels import nll_loss_backward_kernel, nll_loss_forward_kernel, \
     BLOCK_SIZE_BATCH_heuristic
 from .types import Context
+from .utils import get_output_dtype
 
 
 class NLLLossAutoGrad(torch.autograd.Function):
@@ -64,11 +65,12 @@ class NLLLossAutoGrad(torch.autograd.Function):
                                                        'spatial_dim': spatial_dim})
         out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
 
-        sum_weights = (torch.empty(out_batch_dim, dtype=input.dtype, device=input.device)
+        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+        sum_weights = (torch.empty(out_batch_dim, dtype=torch.float32, device=input.device)
                        if reduction == 'mean' else None)
-        output = (torch.empty_like(flattened_target, dtype=input.dtype)
+        output = (torch.empty_like(flattened_target, dtype=output_dtype)
                   if reduction == 'none' else
-                  torch.empty(out_batch_dim, dtype=input.dtype, device=input.device))
+                  torch.empty(out_batch_dim, dtype=output_dtype, device=input.device))
 
         # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
         grid = lambda META: (cdiv(len(input), META['BLOCK_SIZE_BATCH']),)
@@ -93,6 +95,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
         ctx.sum_weights = sum_weights
         ctx.reduction = reduction
         ctx.weight = weight
+        ctx.output_dtype = output_dtype
         if input.requires_grad:
             ctx.save_for_backward(input, flattened_target)
 
@@ -121,7 +124,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
                        if output_grad.ndim > 0 else output_grad)
 
         batch_dim, _, spatial_dim = flattened_input.shape
-        input_grad = torch.zeros_like(flattened_input)
+        input_grad = torch.zeros_like(flattened_input, dtype=ctx.output_dtype)
 
         # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
         grid = lambda META: (cdiv(len(input), META['BLOCK_SIZE_BATCH']),)
