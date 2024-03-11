@@ -3,6 +3,7 @@ from typing import Tuple
 import pytest
 import torch
 from torch import nn
+from torch.cuda.amp import autocast
 from torch.nn import init
 
 import attorch
@@ -13,14 +14,21 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('eps', [1e-5, 1e-6])
 @pytest.mark.parametrize('elementwise_affine', [False, True])
 @pytest.mark.parametrize('bias', [False, True])
+@pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
+@pytest.mark.parametrize('amp', [False, True])
 def test_layer_norm_layer(
     shape: Tuple[int, ...],
     eps: float,
     elementwise_affine: bool,
     bias: bool,
+    input_dtype: bool,
+    amp: bool,
     ) -> None:
-    attorch_input = create_input(shape)
-    pytorch_input = create_input(shape)
+    if input_dtype is torch.float16 and not amp:
+        return
+
+    attorch_input = create_input(shape, dtype=input_dtype)
+    pytorch_input = create_input(shape, dtype=input_dtype)
 
     attorch_layer_norm = attorch.LayerNorm(shape[-1], eps, elementwise_affine, bias)
     pytorch_layer_norm = nn.LayerNorm(shape[-1], eps, elementwise_affine, bias,
@@ -37,8 +45,9 @@ def test_layer_norm_layer(
         if bias:
             init.normal_(pytorch_layer_norm.bias)
 
-    attorch_output = attorch_layer_norm(attorch_input)
-    pytorch_output = pytorch_layer_norm(pytorch_input)
+    with autocast(enabled=amp):
+        attorch_output = attorch_layer_norm(attorch_input)
+        pytorch_output = pytorch_layer_norm(pytorch_input)
 
     assert_close((attorch_output, pytorch_output),
                  rtol=1e-3, atol=1e-3)
