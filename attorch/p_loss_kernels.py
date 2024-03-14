@@ -47,8 +47,8 @@ def p_loss_forward_kernel(
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
     mask = offset < size
 
-    input = tl.load(input_pointer + offset, mask=mask)
-    target = tl.load(target_pointer + offset, mask=mask)
+    input = tl.load(input_pointer + offset, mask=mask).to(tl.float32)
+    target = tl.load(target_pointer + offset, mask=mask).to(tl.float32)
     diff = input - target
 
     if p_loss == 1:
@@ -111,9 +111,9 @@ def p_loss_backward_kernel(
         output_grad_pointer += offset
         output_grad_mask = mask
 
-    input = tl.load(input_pointer + offset, mask=mask)
-    target = tl.load(target_pointer + offset, mask=mask)
-    output_grad = tl.load(output_grad_pointer, mask=output_grad_mask)
+    input = tl.load(input_pointer + offset, mask=mask).to(tl.float32)
+    target = tl.load(target_pointer + offset, mask=mask).to(tl.float32)
+    output_grad = tl.load(output_grad_pointer, mask=output_grad_mask).to(tl.float32)
 
     if p_loss == 1:
         input_grad = tl.where(target <= input, 1, -1)

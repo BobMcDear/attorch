@@ -12,6 +12,7 @@ from triton import cdiv
 
 from .p_loss_kernels import p_loss_backward_kernel, p_loss_forward_kernel
 from .types import Context
+from .utils import get_output_dtype
 
 
 class PLossAutoGrad(torch.autograd.Function):
@@ -48,16 +49,20 @@ class PLossAutoGrad(torch.autograd.Function):
         assert input.shape == target.shape, \
             f'Input shape {input.shape} and target shape {target.shape} not equal'
 
+        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+
         ctx.p_loss = p_loss
         ctx.reduction = reduction
+        ctx.output_dtype = output_dtype
         if input.requires_grad or target.requires_grad:
             ctx.save_for_backward(input, target)
 
         flattened_input = input.flatten()
         flattened_target = target.flatten()
         size = len(flattened_input)
-        output = (torch.empty_like(flattened_input) if reduction == 'none'
-                  else torch.empty(cdiv(size, 32), device=input.device))
+
+        output = (torch.empty_like(flattened_input, dtype=output_dtype) if reduction == 'none'
+                  else torch.empty(cdiv(size, 32), dtype=output_dtype, device=input.device))
 
         # Launches 1D grid where each program operates over
         # BLOCK_SIZE elements.
@@ -96,8 +101,8 @@ class PLossAutoGrad(torch.autograd.Function):
         output_grad = output_grad.flatten()
 
         size = len(flattened_input)
-        input_grad = torch.empty_like(flattened_input)
-        target_grad = torch.empty_like(flattened_target)
+        input_grad = torch.empty_like(flattened_input, dtype=ctx.output_dtype)
+        target_grad = torch.empty_like(flattened_target, dtype=ctx.output_dtype)
 
         # Launches 1D grid where each program operates over
         # BLOCK_SIZE elements.
