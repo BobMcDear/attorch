@@ -12,6 +12,7 @@ from triton import cdiv
 
 from .softmax_kernels import softmax_backward_kernel, softmax_forward_kernel
 from .types import Context
+from .utils import get_output_dtype
 
 
 class SoftmaxAutoGrad(torch.autograd.Function):
@@ -39,7 +40,9 @@ class SoftmaxAutoGrad(torch.autograd.Function):
         flattened_input = input.unsqueeze(0) if input.ndim == 1 else input
         flattened_input = flattened_input.flatten(0, -2)
         batch_dim, feat_dim = flattened_input.shape
-        output = torch.empty_like(flattened_input)
+
+        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+        output = torch.empty_like(flattened_input, dtype=output_dtype)
 
         # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
         grid = lambda META: (cdiv(batch_dim, META['BLOCK_SIZE_BATCH']),)

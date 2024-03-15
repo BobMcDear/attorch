@@ -85,7 +85,7 @@ def softmax_forward_kernel(
                        output_feat_stride * feat_offset[None, :])
 
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :],
-                    other=-float('inf'))
+                    other=-float('inf')).to(tl.float32)
     input -= tl.max(input, axis=1)[:, None]
     numerator = tl.exp(input)
     denominator = tl.sum(numerator, axis=1)[:, None]
@@ -160,9 +160,9 @@ def softmax_backward_kernel(
                            input_grad_feat_stride * feat_offset[None, :])
 
     output_grad = tl.load(output_grad_pointer,
-                          mask=batch_mask[:, None] & feat_mask[None, :])
+                          mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     output = tl.load(output_pointer,
-                     mask=batch_mask[:, None] & feat_mask[None, :])
+                     mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
 
     if log:
         input_grad = (output_grad -
