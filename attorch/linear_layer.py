@@ -85,7 +85,6 @@ class LinearAutoGrad(torch.autograd.Function):
                                     save_pre_act=save_pre_act,
                                     fp16=output_dtype is torch.float16)
 
-
         ctx.act_func = act_func
         ctx.bias_requires_grad = False if bias is None else bias.requires_grad
         ctx.output_dtype = output_dtype
