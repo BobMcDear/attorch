@@ -165,13 +165,11 @@ class LayerNorm(nn.LayerNorm):
         elementwise_affine: Flag for scaling the normalized output by weights.
         bias: Flag for adding a bias vector to the normalized output
             if elementwise_affine is True.
-        device: Device to use. Only CUDA is supported.
-        dtype: Dtype of layer. Only float32 is supported.
+        device: Device to use.
+        dtype: Dtype of layer.
 
     Raises:
         RuntimeError: 1. Normalized shape was not an integer.
-                      2. A device other than CUDA was passed.
-                      3. A dtype other than float32 was passed.
     """
     def __init__(
         self,
@@ -184,12 +182,6 @@ class LayerNorm(nn.LayerNorm):
         ) -> None:
         if not isinstance(normalized_shape, int):
             raise RuntimeError('Normalized shape must be an integer.')
-
-        if 'cuda' not in str(device):
-            raise RuntimeError('Layer normalization only supports CUDA devices.')
-
-        if dtype is not torch.float32:
-            raise RuntimeError('Layer normalization only supports float32 dtype.')
 
         super().__init__(normalized_shape, eps, elementwise_affine, bias,
                          device, dtype)

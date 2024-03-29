@@ -242,12 +242,8 @@ class BatchNorm1d(nn.BatchNorm1d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
-        device: Device to use. Only CUDA is supported.
-        dtype: Dtype of layer. Only float32 is supported.
-
-    Raises:
-        RuntimeError: 1. A device other than CUDA was passed.
-                      2. A dtype other than float32 was passed.
+        device: Device to use.
+        dtype: Dtype of layer.
     """
     def __init__(
         self,
@@ -260,12 +256,6 @@ class BatchNorm1d(nn.BatchNorm1d):
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
-        if 'cuda' not in str(device):
-            raise RuntimeError('Batch normalization only supports CUDA devices.')
-
-        if dtype is not torch.float32:
-            raise RuntimeError('Batch normalization only supports float32 dtype.')
-
         super().__init__(num_features, eps, momentum, affine,
                          track_running_stats, device, dtype)
         self.act_func = act_func
@@ -301,12 +291,8 @@ class BatchNorm2d(nn.BatchNorm2d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
-        device: Device to use. Only CUDA is supported.
-        dtype: Dtype of layer. Only float32 is supported.
-
-    Raises:
-        RuntimeError: 1. A device other than CUDA was passed.
-                      2. A dtype other than float32 was passed.
+        device: Device to use.
+        dtype: Dtype of layer.
     """
     def __init__(
         self,
@@ -319,12 +305,6 @@ class BatchNorm2d(nn.BatchNorm2d):
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
-        if 'cuda' not in str(device):
-            raise RuntimeError('Batch normalization only supports CUDA devices.')
-
-        if dtype is not torch.float32:
-            raise RuntimeError('Batch normalization only supports float32 dtype.')
-
         super().__init__(num_features, eps, momentum, affine,
                          track_running_stats, device, dtype)
         self.act_func = act_func

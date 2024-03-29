@@ -164,12 +164,8 @@ class Linear(nn.Linear):
         bias: Flag for additive bias.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
-        device: Device to use. Only CUDA is supported.
-        dtype: Dtype of layer. Only float32 is supported.
-
-    Raises:
-        RuntimeError: 1. A device other than CUDA was passed.
-                      2. A dtype other than float32 was passed.
+        device: Device to use.
+        dtype: Dtype of layer.
     """
     def __init__(
         self,
@@ -180,12 +176,6 @@ class Linear(nn.Linear):
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
-        if 'cuda' not in str(device):
-            raise RuntimeError('Linear layer only supports CUDA devices.')
-
-        if dtype is not torch.float32:
-            raise RuntimeError('Linear layer only supports float32 dtype.')
-
         super().__init__(in_features, out_features, bias, device, dtype)
         self.weight = nn.Parameter(self.weight.T.contiguous())
         self.act_func = act_func

@@ -186,14 +186,12 @@ class Conv2d(nn.Conv2d):
         groups: Number of groups for the convolution.
         bias: Flag for additive bias.
         padding_mode: Padding mode. Only 'zeros' is supported.
-        device: Device to use. Only CUDA is supported.
-        dtype: Dtype of layer. Only float32 is supported.
+        device: Device to use.
+        dtype: Dtype of layer.
 
     Raises:
         RuntimeError: 1. A dilation other than 1 was passed.
                       2. A padding mode other than 'zeros' was passed.
-                      3. A device other than CUDA was passed.
-                      4. A dtype other than float32 was passed.
     """
     def __init__(
         self,
@@ -217,13 +215,6 @@ class Conv2d(nn.Conv2d):
 
         if self.padding_mode != 'zeros':
             raise RuntimeError("Convolutional layer only support 'zeros' padding mode.")
-
-        if 'cuda' not in str(device):
-            raise RuntimeError('Convolutional layer only supports CUDA devices.')
-
-        if dtype is not torch.float32:
-            raise RuntimeError('Convolutional layer only supports float32 dtype.')
-
 
     def forward(self, input: Tensor) -> Tensor:
         return Conv2dAutoGrad.apply(input, self.weight, self.bias,
