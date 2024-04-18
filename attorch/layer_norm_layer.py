@@ -27,6 +27,7 @@ class LayerNormAutoGrad(torch.autograd.Function):
         weight: Optional[Tensor] = None,
         bias: Optional[Tensor] = None,
         eps: float = 1e-5,
+        autocast_to_fp32: bool = True,
         ) -> Tensor:
         """
         Layer-normalizes the input.
@@ -41,6 +42,8 @@ class LayerNormAutoGrad(torch.autograd.Function):
                 If provided, must be of shape [feat_dim].
             eps: Epsilon added in the square root in the denominator
                 to avoid division by zero.
+            autocast_to_fp32: Flag for autocasting the output dtype to fp32.
+                If False, the input dtype flows through.
 
         Returns:
             Layer-normalized input.
@@ -49,7 +52,8 @@ class LayerNormAutoGrad(torch.autograd.Function):
         flattened_input = flattened_input.flatten(0, -2)
         batch_dim, feat_dim = flattened_input.shape
 
-        output_dtype = get_output_dtype(input.dtype, autocast='fp32')
+        output_dtype = get_output_dtype(input.dtype,
+                                        autocast='fp32' if autocast_to_fp32 else None)
         output = torch.empty_like(flattened_input, dtype=output_dtype)
 
         scale_by_weight = weight is not None
@@ -158,6 +162,13 @@ class LayerNorm(nn.LayerNorm):
     Layer-normalizes the input.
     See also base class.
 
+    Note: During automatic mixed precision training, PyTorch autocasts
+    the output dtype of layer normalization to fp32. This conversion is not necessary
+    and retaining the input dtype is generally numerically stable in addition to
+    being slightly more efficient. Layer normalization in attorch thus offers
+    an additional argument, autocast_to_fp32, to manually disable this
+    autocasting behaviour.
+
     Args:
         normalized_shape: Dimensionality of last feature that is normalized.
         eps: Epsilon added in the square root in the denominator
@@ -165,6 +176,8 @@ class LayerNorm(nn.LayerNorm):
         elementwise_affine: Flag for scaling the normalized output by weights.
         bias: Flag for adding a bias vector to the normalized output
             if elementwise_affine is True.
+        autocast_to_fp32: Flag for autocasting the output dtype to fp32.
+            If False, the input dtype flows through.
         device: Device to use.
         dtype: Dtype of layer.
 
@@ -177,6 +190,7 @@ class LayerNorm(nn.LayerNorm):
         eps: float = 1e-5,
         elementwise_affine: bool = True,
         bias: bool = True,
+        autocast_to_fp32: bool = True,
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
@@ -185,6 +199,8 @@ class LayerNorm(nn.LayerNorm):
 
         super().__init__(normalized_shape, eps, elementwise_affine, bias,
                          device, dtype)
+        self.autocast_to_fp32 = autocast_to_fp32
 
     def forward(self, input: Tensor) -> Tensor:
-        return LayerNormAutoGrad.apply(input, self.weight, self.bias, self.eps)
+        return LayerNormAutoGrad.apply(input, self.weight, self.bias, self.eps,
+                                       self.autocast_to_fp32)
