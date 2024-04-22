@@ -21,6 +21,7 @@ The only dependencies of attorch are ```torch==2.2.0``` and ```triton==2.2.0```.
 Currently implemented layers, with automatic mixed precision (AMP) support, are,
 
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
+* ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
 * ```attorch.GELU```: Applies GELU to the input.
 * ```attorch.ReLU```: Applies ReLU to the input.
 * ```attorch.SiLU```: Applies SiLU to the input.
