@@ -9,6 +9,43 @@ import triton.language as tl
 from .utils import element_wise_kernel_configs
 
 
+@triton.jit
+def apply_dropout(input, drop_p, seed, offset):
+    """
+    Randomly zeroes elements in the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        drop_p: Probability of dropping an element.
+        seed: Seed for generating the dropout mask.
+        offset: Offset to generate the mask for.
+
+    Returns:
+        Input with elements randomly zeroed out.
+    """
+    random = tl.rand(seed, offset)
+    return tl.where(random < drop_p, 0, input / (1 - drop_p))
+
+
+@triton.jit
+def apply_dropout_grad(output_grad, drop_p, seed, offset):
+    """
+    Calculates the input gradient of dropout.
+
+    Args:
+        output_grad: Output gradients. The output gradients must be
+            loaded and cannot be a pointer.
+        drop_p: Probability of dropping an element.
+        seed: Seed for generating the dropout mask.
+        offset: Offset to generate the mask for.
+
+    Returns:
+        Gradient of dropout.
+    """
+    random = tl.rand(seed, offset)
+    return tl.where(random < drop_p, 0, output_grad / (1 - drop_p))
+
+
 @triton.autotune(
     configs=element_wise_kernel_configs(),
     key=['size'],
@@ -37,9 +74,8 @@ def dropout_forward_kernel(
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
     mask = offset < size
 
-    random = tl.rand(seed, offset)
     input = tl.load(input_pointer + offset, mask=mask)
-    output = tl.where(random < drop_p, 0, input / (1 - drop_p))
+    output = apply_dropout(input, drop_p, seed, offset)
     tl.store(output_pointer + offset, output, mask=mask)
 
 
@@ -71,7 +107,6 @@ def dropout_backward_kernel(
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
     mask = offset < size
 
-    random = tl.rand(seed, offset)
     output_grad = tl.load(output_grad_pointer + offset, mask=mask)
-    input_grad = tl.where(random < drop_p, 0, output_grad / (1 - drop_p))
+    input_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
     tl.store(input_grad_pointer + offset, input_grad, mask=mask)
