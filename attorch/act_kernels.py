@@ -1,11 +1,12 @@
 """
-Kernels for activation functions.
+Kernels for activation functions with fused dropout.
 """
 
 
 import triton
 import triton.language as tl
 
+from .dropout_kernels import apply_dropout, apply_dropout_grad
 from .utils import element_wise_kernel_configs
 
 
@@ -156,17 +157,23 @@ def silu_grad(input):
 
 
 @triton.jit
-def apply_act_func(input, act_func: tl.constexpr):
+def apply_act_func(input, drop_p, seed, offset,
+                   act_func: tl.constexpr, dropout: tl.constexpr):
     """
-    Applies an activation function to the input.
+    Applies an activation function to the input, optionally fusing dropout.
 
     Args:
         input: Input. The input must be loaded and cannot be a pointer.
+        drop_p: Probability of dropping an element if dropout is True.
+        seed: Seed for generating the dropout mask if dropout is True.
+        offset: Offset to generate the dropout mask for if dropout is True.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+        dropout: Flag for performing dropout on the activation output.
 
     Returns:
-        Input transformed by the desired activation function.
+        Input transformed by the desired activation function,
+        potentially with fused dropout.
     """
     # All activation functions, except ReLU, require FP32 inputs.
     if act_func != 'relu':
@@ -187,18 +194,28 @@ def apply_act_func(input, act_func: tl.constexpr):
     elif act_func == 'silu':
         output = silu(input)
 
+    if dropout:
+        output = apply_dropout(output, drop_p, seed, offset)
+
     return output
 
 
 @triton.jit
-def apply_act_func_grad(input, act_func: tl.constexpr):
+def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
+                        act_func: tl.constexpr, dropout: tl.constexpr):
     """
     Calculates the gradient of an activation function.
 
     Args:
+        output_grad: Output gradients. The output gradients must be
+            loaded and cannot be a pointer.
         input: Input. The input must be loaded and cannot be a pointer.
+        drop_p: Probability of dropping an element if dropout is True.
+        seed: Seed for generating the dropout mask if dropout is True.
+        offset: Offset to generate the dropout mask for if dropout is True.
         act_func: Name of activation function whose gradient is calculated.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+        dropout: Flag for performing dropout on the activation output.
 
     Returns:
         Gradient of the desired activation function.
@@ -222,7 +239,10 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
     elif act_func == 'silu':
         output = silu_grad(input)
 
-    return output
+    if dropout:
+        output_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
+
+    return output_grad * output
 
 
 @triton.autotune(
@@ -232,11 +252,12 @@ def apply_act_func_grad(input, act_func: tl.constexpr):
 @triton.jit
 def act_func_forward_kernel(
     input_pointer, output_pointer, size,
-    act_func: tl.constexpr,
+    drop_p, seed,
+    act_func: tl.constexpr, dropout: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
     """
-    Applies an activation function to the input.
+    Applies an activation function to the input, optionally fusing dropout.
 
     Args:
         input_pointer: Pointer to the input to transform.
@@ -244,8 +265,11 @@ def act_func_forward_kernel(
         output_pointer: Pointer to a container the result is written to.
             The container must be of shape [size].
         size: Number of elements in the input.
+        drop_p: Probability of dropping an element if dropout is True.
+        seed: Seed for generating the dropout mask if dropout is True.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+        dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE rows.
@@ -254,7 +278,9 @@ def act_func_forward_kernel(
     mask = offset < size
 
     input = tl.load(input_pointer + offset, mask=mask)
-    tl.store(output_pointer + offset, apply_act_func(input, act_func), mask=mask)
+    tl.store(output_pointer + offset,
+             apply_act_func(input, drop_p, seed, offset, act_func, dropout),
+             mask=mask)
 
 
 @triton.autotune(
@@ -264,7 +290,8 @@ def act_func_forward_kernel(
 @triton.jit
 def act_func_backward_kernel(
     output_grad_pointer, input_pointer, input_grad_pointer, size,
-    act_func: tl.constexpr,
+    drop_p, seed,
+    act_func: tl.constexpr, dropout: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
     """
@@ -278,8 +305,11 @@ def act_func_backward_kernel(
         input_grad_pointer: Pointer to a container the input's gradients are written to.
             The container must be of shape [size].
         size: Number of elements in the input.
+        drop_p: Probability of dropping an element if dropout is True.
+        seed: Seed for generating the dropout mask if dropout is True.
         act_func: Name of activation function whose gradient is calculated.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+        dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE rows.
@@ -290,5 +320,6 @@ def act_func_backward_kernel(
     output_grad = tl.load(output_grad_pointer + offset, mask=mask)
     input = tl.load(input_pointer + offset, mask=mask)
 
-    input_grad = output_grad * apply_act_func_grad(input, act_func)
-    tl.store(input_grad_pointer + offset, input_grad, mask=mask)
+    tl.store(input_grad_pointer + offset,
+             apply_act_func_grad(output_grad, input, drop_p, seed, offset, act_func, dropout),
+             mask=mask)
