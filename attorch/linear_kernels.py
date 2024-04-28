@@ -177,7 +177,7 @@ def linear_forward_kernel(
             tl.store(pre_act_pointer, accum,
                      mask=batch_mask[:, None] & out_feat_mask[None, :])
 
-        accum = apply_act_func(accum, act_func)
+        accum = apply_act_func(accum, None, None, None, act_func, False)
 
     output_pointer += (output_batch_stride * batch_offset[:, None] +
                        output_out_feat_stride * out_feat_offset[None, :])

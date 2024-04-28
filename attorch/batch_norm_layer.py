@@ -184,7 +184,8 @@ class BatchNormAutoGrad(torch.autograd.Function):
             # BLOCK_SIZE elements.
             grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
             act_func_backward_kernel[grid](output_grad.flatten(), pre_act,
-                                           pre_act_grad, size, ctx.act_func)
+                                           pre_act_grad, size, None, None,
+                                           ctx.act_func, False)
 
             pre_act_grad = pre_act_grad.view_as(pre_act)
 

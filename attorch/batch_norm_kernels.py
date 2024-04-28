@@ -223,7 +223,7 @@ def batch_norm_forward_kernel(
                 tl.store(curr_pre_act_pointer, output,
                          mask=batch_mask[:, None] & spatial_mask[None, :])
 
-            output = apply_act_func(output, act_func)
+            output = apply_act_func(output, None, None, None, act_func, False)
 
         tl.store(curr_output_pointer, output,
                  mask=batch_mask[:, None] & spatial_mask[None, :])
