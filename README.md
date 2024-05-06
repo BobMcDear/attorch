@@ -22,11 +22,11 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
 * ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
-* ```attorch.GELU```: Applies GELU to the input.
-* ```attorch.ReLU```: Applies ReLU to the input.
-* ```attorch.SiLU```: Applies SiLU to the input.
-* ```attorch.Sigmoid```: Applies sigmoid to the input.
-* ```attorch.Tanh```: Applies tanh to the input.
+* ```attorch.GELU```: Applies GELU to the input, optionally fusing dropout.
+* ```attorch.ReLU```: Applies ReLU to the input, optionally fusing dropout.
+* ```attorch.SiLU```: Applies SiLU to the input, optionally fusing dropout.
+* ```attorch.Sigmoid```: Applies sigmoid to the input, optionally fusing dropout.
+* ```attorch.Tanh```: Applies tanh to the input, optionally fusing dropout.
 * ```attorch.LogSoftmax```: Normalizes the input using softmax and takes its log.
 * ```attorch.Softmax```: Normalizes the input using softmax.
 * ```attorch.Softmin```: Normalizes the input using softmin.
