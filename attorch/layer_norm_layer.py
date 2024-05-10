@@ -154,7 +154,7 @@ class LayerNormAutoGrad(torch.autograd.Function):
 
         # Pads output with None because a gradient is necessary for
         # all input arguments.
-        return input_grad.view_as(output_grad), weight_grad, bias_grad, None
+        return input_grad.view_as(output_grad), weight_grad, bias_grad, None, None
 
 
 class LayerNorm(nn.LayerNorm):
