@@ -27,6 +27,7 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.SiLU```: Applies SiLU to the input, optionally fusing dropout.
 * ```attorch.Sigmoid```: Applies sigmoid to the input, optionally fusing dropout.
 * ```attorch.Tanh```: Applies tanh to the input, optionally fusing dropout.
+* ```attorch.GLU```: Applies the gated linear unit with an arbitrary activation function to the input.
 * ```attorch.LogSoftmax```: Normalizes the input using softmax and takes its log.
 * ```attorch.Softmax```: Normalizes the input using softmax.
 * ```attorch.Softmin```: Normalizes the input using softmin.
