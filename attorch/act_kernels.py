@@ -299,7 +299,7 @@ def act_func_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to the activation's output gradients.
-            The output container must be of shape [size].
+            The output gradients must be of shape [size].
         input_pointer: Pointer to the activation's input.
             The input must be of shape [size].
         input_grad_pointer: Pointer to a container the input's gradients are written to.

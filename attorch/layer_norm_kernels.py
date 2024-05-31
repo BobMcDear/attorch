@@ -125,7 +125,7 @@ def layer_norm_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to layer normalization's output gradients.
-            The output container must be of shape [batch_dim, feat_dim].
+            The output gradients must be of shape [batch_dim, feat_dim].
         input_pointer: Pointer to the input.
             The input must be of shape [batch_dim, feat_dim].
         mean_pointer: Pointer to the input's mean.

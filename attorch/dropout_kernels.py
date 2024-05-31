@@ -94,7 +94,7 @@ def dropout_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to dropout's output gradients.
-            The output container must be of shape [size].
+            The output gradients must be of shape [size].
         input_grad_pointer: Pointer to a container the input's gradients are written to.
             The container must be of shape [size].
         size: Number of elements in the input.

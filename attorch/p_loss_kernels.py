@@ -84,7 +84,7 @@ def p_loss_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to the error's output gradients.
-            The output container must be a scalar or of shape [size].
+            The output gradients must be a scalar or of shape [size].
         input_pointer: Pointer to the input.
             The input must be of shape [size].
         target_pointer: Pointer to the target.

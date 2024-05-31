@@ -26,9 +26,9 @@ def glu_forward_kernel(
 
     Args:
         input1_pointer: Pointer to the first half of the input to gate.
-            The input must be contiguous and contain size elements.
+            The first half must be contiguous and contain size elements.
         input2_pointer: Pointer to the second half of the input to gate.
-            The input must be contiguous and contain size elements.
+            The second half must be contiguous and contain size elements.
         output_pointer: Pointer to a container the result is written to.
             The container must be contiguous and contain size elements.
         size: Number of elements in each half of the input.
@@ -64,11 +64,11 @@ def glu_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to the unit's output gradients.
-            The output container must be contiguous and contain size elements.
+            The output gradients must be contiguous and contain size elements.
         input1_pointer: Pointer to the first half of the input that was gated.
-            The input must be contiguous and contain size elements.
+            The first half must be contiguous and contain size elements.
         input2_pointer: Pointer to the second half of the input that was gated.
-            The input must be contiguous and contain size elements.
+            The second half must be contiguous and contain size elements.
         input1_grad_pointer: Pointer to a container the first half's gradients are written to.
             The container must be contiguous and contain size elements.
         input2_grad_pointer: Pointer to a container the second half's gradients are written to.

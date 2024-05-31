@@ -120,7 +120,7 @@ def softmax_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to softmax's output gradients.
-            The output container must be of shape [batch_dim, feat_dim].
+            The output gradients must be of shape [batch_dim, feat_dim].
         output_pointer: Pointer to softmax's output.
             The output must be of shape [batch_dim, feat_dim].
         input_grad_pointer: Pointer to a container the input's gradients are written to.

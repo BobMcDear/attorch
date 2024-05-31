@@ -24,6 +24,10 @@ def BLOCK_SIZE_SPATIAL_heuristic(args: Dict) -> int:
     Returns:
         Appropriate spatial block size.
     """
+    # Preferrably, the batch and spatial dimensions would both be loaded,
+    # and normalization would be conducted in one step.
+    # However, for large inputs, that is not feasible given memory constraints.
+    # Thus, a maximum of 16384 elements are loaded at once.
     BLOCK_SIZE_BATCH = next_power_of_2(args['batch_dim'])
     BLOCK_SIZE_SPATIAL = next_power_of_2(args['spatial_dim'])
     return min(BLOCK_SIZE_SPATIAL, max(1, 2 ** 14 // BLOCK_SIZE_BATCH))
@@ -251,7 +255,7 @@ def batch_norm_backward_kernel(
 
     Args:
         output_grad_pointer: Pointer to layer normalization's output gradients.
-            The output container must be of shape [batch_dim, feat_dim, spatial_dim].
+            The output gradients must be of shape [batch_dim, feat_dim, spatial_dim].
         input_pointer: Pointer to the input.
             The input must be of shape [batch_dim, feat_dim, spatial_dim].
         mean_pointer: Pointer to the input's mean.
