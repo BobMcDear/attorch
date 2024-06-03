@@ -6,6 +6,8 @@ Pure math operations to be performed on loaded Triton tensors.
 import triton
 import triton.language as tl
 
+from .act_kernels import apply_act_func
+
 
 @triton.jit
 def accum_linear(accum, input1, input2,
@@ -31,3 +33,24 @@ def accum_linear(accum, input1, input2,
         input2 = input2.to(tl.float16)
 
     return accum + tl.dot(input1, input2, allow_tf32=tf32)
+
+
+@triton.jit
+def glu(input1, input2, act_func: tl.constexpr):
+    """
+    Applies the gated linear unit with an arbitrary activation function
+    to the input.
+
+    Args:
+        input1: First half of input to gate.
+            The first half must be of the same shape as the second half.
+        input2: Second half of input to gate.
+            The second half must be of the same shape as the first half.
+        act_func: Name of activation function to apply.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+
+    Args:
+        Input transformed by the gated linear unit
+        with an arbitrary activation function.
+    """
+    return input1 * apply_act_func(input2, None, None, None, act_func, False)
