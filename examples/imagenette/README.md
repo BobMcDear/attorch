@@ -11,8 +11,7 @@ The requirement for this example, aside from attorch and its dependencies, is,
 ## Training
 
 To run this example, please run ```python -m examples.imagenette.main``` from the root directory. The arguments are as follows.
-
-* ```--model```: Name of vision model to train. Options are ```resnet50```, ```resnet101```, ```resnet152```, ```convnext_tiny```, ```convnext_small```, ```convnext_base```, ```convnext_large```, ```convnext_xlarge```.
+* ```--model```: Name of vision model to train. Options are ```resnet50```, ```resnet101```, ```resnet152```, ```convnext_tiny```, ```convnext_small```, ```convnext_base```, ```convnext_large```, ```convnext_xlarge```, `vit_tiny_patch16`, `vit_small_patch32`, `vit_small_patch16`, `vit_small_patch8`, `vit_base_patch32`, `vit_base_patch16`, `vit_base_patch8`, `vit_large_patch32`, `vit_large_patch16`, and `vit_large_patch14`.
 * ```--epochs```: Number of epochs to train for.
 * ```--batch_size```: Batch size.
 * ```--center_crop_size```: Center crop size for validation.

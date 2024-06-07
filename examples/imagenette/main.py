@@ -20,6 +20,9 @@ from torchvision.datasets import Imagenette
 from .convnext import convnext_tiny, convnext_small, convnext_base, \
     convnext_large, convnext_xlarge
 from .resnet import resnet50, resnet101, resnet152
+from .vit import vit_tiny_patch16, vit_small_patch32, vit_small_patch16, vit_small_patch8, \
+    vit_base_patch32, vit_base_patch16, vit_base_patch8, \
+    vit_large_patch32, vit_large_patch16, vit_large_patch14
 from ..utils import AvgMeter, benchmark_fw_and_bw
 
 
@@ -180,7 +183,11 @@ if __name__ == '__main__':
                         choices=['resnet50', 'resnet101', 'resnet152',
                                  'convnext_tiny', 'convnext_small',
                                  'convnext_base', 'convnext_large',
-                                 'convnext_xlarge'],
+                                 'convnext_xlarge',
+                                 'vit_tiny_patch16',
+                                 'vit_small_patch32', 'vit_small_patch16', 'vit_small_patch8',
+                                 'vit_base_patch32', 'vit_base_patch16', 'vit_base_patch8',
+                                 'vit_large_patch32', 'vit_large_patch16', 'vit_large_patch14'],
                         help='Name of vision model to train')
     parser.add_argument('--epochs',
                         type=int,
@@ -204,14 +211,17 @@ if __name__ == '__main__':
                         help='Number of workers for data loading')
     args = parser.parse_args()
 
+    model_cls = (partial(locals()[args.model], image_size=args.image_size)
+                 if 'vit' in args.model else partial(locals()[args.model]))
+
     print('attorch run:')
-    main(partial(locals()[args.model], use_attorch=True),
+    main(partial(model_cls, use_attorch=True),
          epochs=args.epochs, batch_size=args.batch_size,
          center_crop_size=args.center_crop_size, image_size=args.image_size,
          num_workers=args.num_workers)
 
     print('PyTorch run:')
-    main(partial(locals()[args.model], use_attorch=False),
+    main(partial(model_cls, use_attorch=False),
          epochs=args.epochs, batch_size=args.batch_size,
          center_crop_size=args.center_crop_size, image_size=args.image_size,
          num_workers=args.num_workers)
