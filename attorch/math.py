@@ -54,3 +54,32 @@ def glu(input1, input2, act_func: tl.constexpr):
         with an arbitrary activation function.
     """
     return input1 * apply_act_func(input2, None, None, None, act_func, False)
+
+
+@triton.jit
+def softmax(input,
+            log: tl.constexpr):
+    """
+    Normalizes the input using softmax along the last dimension.
+
+    Args:
+        input: Input to normalize.
+            The input must be of shape [BLOCK_SIZE1, BLOCK_SIZE2].
+        log: Flag for indicating if the log of softmax should be taken.
+
+    Returns:
+        Input normalized by softmax.
+    """
+    input = input.to(tl.float32)
+
+    input = input - tl.max(input, axis=1)[:, None]
+    numerator = tl.exp(input)
+    denominator = tl.sum(numerator, axis=1)[:, None]
+
+    if log:
+        output = input - tl.log(denominator)
+
+    else:
+        output = numerator / denominator
+
+    return output
