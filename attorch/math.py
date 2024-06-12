@@ -83,3 +83,96 @@ def softmax(input,
         output = numerator / denominator
 
     return output
+
+
+@triton.jit
+def calc_mean_and_inv_std(input, last_dim, eps,
+                          last_dim_mask: tl.constexpr):
+    """
+    Calculates the mean and inverse standard deviation of the input
+    along the last dimension.
+
+    Args:
+        input: Input whose mean and inverse standard deviation are calculated.
+            The input must be of shape [BLOCK_SIZE1, BLOCK_SIZE2].
+        last_dim: Size of the last dimension of input.
+        eps: Epsilon added in the square root in the denominator
+            to avoid division by zero.
+        last_dim_mask: Mask for the last dimension indicating
+            which elements should be included in the calculations.
+            The mask must be of shape [BLOCK_SIZE2].
+
+    Returns:
+        Mean and inverse standard deviation of the input.
+    """
+    input = input.to(tl.float32)
+
+    mean = tl.sum(input, axis=1) / last_dim
+    diff = tl.where(last_dim_mask[None, :], input - tl.expand_dims(mean, axis=1), 0)
+    inv_std = 1 / tl.sqrt(tl.sum(diff * diff, axis=1) / last_dim + eps)
+
+    return mean, inv_std
+
+
+@triton.jit
+def update_welford(input, prev_count, prev_mean, prev_var, curr_count,
+                   mask: tl.constexpr):
+    """
+    Updates count, mean, and variance (M2) statistics for Welford's algorithm.
+
+    Args:
+        input: Input used to update statistics.
+            The input must be of the same shape as the mask.
+        prev_count: Previous count statistic to update.
+        prev_mean: Previous mean statistic to update.
+        prev_var: Previous variance (M2) statistic to update.
+        curr_count: Count of elements in current input.
+        mask: Mask indicating which elements should be included in the calculations.
+            The mask must be of the same shape as the input.
+
+    Returns:
+        Updated count, mean, and variance (M2) statistics
+    """
+    input = input.to(tl.float32)
+
+    count = prev_count + curr_count
+    mean = (tl.sum(input) - curr_count * prev_mean) / count
+    deltas = tl.where(mask, (input - mean) * (input - prev_mean), 0.)
+    var = prev_var + tl.sum(deltas)
+
+    return count, mean, var
+
+
+@triton.jit
+def update_ema(prev_ema, new_val, momentum):
+    """
+    Updates exponential moving average.
+
+    Args:
+        prev_ema: Previous exponential moving average.
+        new_val: Value used to update the exponential moving average.
+        momentum: Momentum.
+
+    Returns:
+        Updated running statistic.
+    """
+    return (1 - momentum) * prev_ema + momentum * new_val
+
+
+@triton.jit
+def standardize(input, mean, inv_std, weight, bias):
+    """
+    Standardizes the input given its mean and inverse standard deviation,
+    multiplies the result by weights, and adds a bias vector.
+
+    Args:
+        input: Input to standardize.
+        mean: Mean of input.
+        inv_std: Inverse standard deviation of input.
+        weight: Weight multiplied by the standardized input.
+        bias: Bias added to the result of the weight multiplication.
+
+    Returns:
+        Standardized input.
+    """
+    return weight * inv_std * (input - mean) + bias
