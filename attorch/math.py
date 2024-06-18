@@ -176,3 +176,106 @@ def standardize(input, mean, inv_std, weight, bias):
         Standardized input.
     """
     return weight * inv_std * (input - mean) + bias
+
+
+@triton.jit
+def calc_p_loss(input, target, size,
+                p_loss: tl.constexpr, reduction: tl.constexpr):
+    """
+    Measures the L1 or squared L2 norm of the difference between the input
+    and target (i.e., mean absolute error or mean squared error).
+
+    Args:
+        input: Input.
+            The input must be of shape [BLOCK_SIZE].
+        target: Target.
+            The target must be of shape [BLOCK_SIZE].
+        size: Number of elements in the input and target.
+            This value is used only if reduction is 'mean'.
+        p_loss: p-norm used to compute the error.
+            Options are 1 for MAE and 2 for MSE.
+        reduction: Reduction strategy for the output.
+            Options are 'none' for no reduction, 'mean' for averaging the error
+            across all entries, and 'sum' for summing the error across all entries.
+
+    Returns:
+        Error.
+    """
+    input = input.to(tl.float32)
+    target = target.to(tl.float32)
+
+    diff = input - target
+
+    if p_loss == 1:
+        error = tl.abs(diff)
+
+    elif p_loss == 2:
+        error = diff * diff
+
+    if reduction == 'none':
+        output = error
+
+    elif reduction == 'mean':
+        output = tl.sum(error) / size
+
+    elif reduction == 'sum':
+        output = tl.sum(error)
+
+    return output
+
+
+@triton.jit
+def nll_loss(input, size,
+             reduction: tl.constexpr):
+    """
+    Measures the negative log likelihood loss given log-probabilities of target class.
+
+    Args:
+        input: Input containing predicted log-probabilities corresponding to target class.
+            The input can have arbitrary shape.
+        size: Number of elements in the input.
+            This value is used only if reduction is 'mean'.
+        reduction: Reduction strategy for the output.
+            Options are 'none' for no reduction, 'mean' for averaging the loss
+            across all entries, and 'sum' for summing the loss across all entries.
+
+    Returns:
+        Loss.
+    """
+    input = input.to(tl.float32)
+
+    if reduction == 'none':
+        output = -input
+
+    elif reduction == 'mean':
+        output = -tl.sum(input) / size
+
+    elif reduction == 'sum':
+        output = -tl.sum(input)
+
+    return output
+
+
+@triton.jit
+def cross_entropy_loss(input, pred):
+    """
+    Measures the per-row cross entropy loss given
+    input and predicted logits corresponding to target class.
+
+    Args:
+        input: Input.
+            The input must be of shape [BLOCK_SIZE1, BLOCK_SIZE2].
+        pred: Predicted logits corresponding to target class.
+            The predictions must be of shape [BLOCK_SIZE1].
+
+    Returns:
+        Loss.
+    """
+    input = input.to(tl.float32)
+    pred = pred.to(tl.float32)
+
+    mx = tl.max(input, axis=1)
+    input -= mx[:, None]
+    loss = tl.log(tl.sum(tl.exp(input), axis=1)) - pred + mx
+
+    return loss
