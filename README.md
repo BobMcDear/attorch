@@ -3,6 +3,7 @@
 • **[Introduction](#introduction)**<br>
 • **[Installation](#installation)**<br>
 • **[Layers](#layers)**<br>
+• **[Math Functions](#math-functions)**<br>
 • **[PyTorch Fallback](#pytorch-fallback)**<br>
 • **[Tests](#tests)**<br>
 
@@ -42,6 +43,9 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.NLLLoss```: Measures the negative log likelihood loss between the input and target, with optional reweighing of each class.
 
 Unless otherwise noted in their docstrings, the aforementioned layers behave identically to their PyTorch equivalents.
+
+## Math Functions
+Triton kernels are generally composed of two parts: One handles the loading and storing of the relevant tensors, the other transforms the data using appropriate mathematical functions. For instance, a layer normalization kernel reads one or several rows from the input (load), standardizes the features (math), and writes the results into a container (store). A selection of these pure math functions is supplied by ```attorch.math```, the objective being to faciliate the implementation of custom kernels and operation fusion. Although only the forward passes of the said functions are available in ```attorch.math```, thanks to their purity and absence of I/O actions, their gradients can be automatically derived via the [```triton-autodiff```](https://github.com/srush/triton-autodiff) library. Notably, significant portions of attorch's kernels can be refactored by supplanting their math bits with the corresponding ```attorch.math``` transformations or their derivatives, but doing so would sacrifice the single-file and self-contained design of attorch, so ```attorch.math``` and the rest of attorch will remain separate.
 
 ## PyTorch Fallback
 
