@@ -5,3 +5,4 @@ This folder - inspired by [```pytorch/examples```](https://github.com/pytorch/ex
 The examples are listed below.
 
 * [Imagenette image classification](https://github.com/bobmcdear/attorch/examples/imagenette)
+* [WikiText-2 language modelling](https://github.com/bobmcdear/attorch/examples/wikitext-2)
