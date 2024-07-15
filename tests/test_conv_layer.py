@@ -9,7 +9,7 @@ import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
 
 
-@pytest.mark.parametrize('input_shape', default_shapes(min_dim=4, max_dim=4))
+@pytest.mark.parametrize('input_shape', default_shapes(min_dim=3, max_dim=4))
 @pytest.mark.parametrize('out_dim', [16, 96, 128, 196, 384, 512, 768, 1024])
 @pytest.mark.parametrize('kernel_size', [1, 2, 3, 4, 5, 7, (5, 3), (3, 5)])
 @pytest.mark.parametrize('stride', [1, 2, (1, 2), (2, 1)])
@@ -32,6 +32,9 @@ def test_conv2d_layer(
     if input_dtype is torch.float16 and not amp:
         return
 
+    if len(input_shape) == 3 and (isinstance(kernel_size, tuple) or isinstance(padding, tuple)):
+        return
+
     if padding == -1:
         padding = kernel_size // 2
 
@@ -41,30 +44,34 @@ def test_conv2d_layer(
     if input_shape[1] % groups != 0:
         groups = 1
 
+    conv_name = 'Conv2d' if len(input_shape) == 4 else 'Conv1d'
     attorch_input = create_input(input_shape, dtype=input_dtype)
     pytorch_input = create_input(input_shape, dtype=input_dtype)
 
     torch.manual_seed(0)
-    attorch_conv2d = attorch.Conv2d(input_shape[1], out_dim, kernel_size,
-                                    stride=stride, padding=padding,
-                                    groups=groups, bias=bias)
+    attorch_conv = getattr(attorch, conv_name)(input_shape[1], out_dim,
+                                               kernel_size,
+                                               stride=stride, padding=padding,
+                                               groups=groups, bias=bias)
 
     torch.manual_seed(0)
-    pytorch_conv2d = nn.Conv2d(input_shape[1], out_dim, kernel_size,
-                               stride=stride, padding=padding,
-                               groups=groups, bias=bias, device='cuda')
+    pytorch_conv = getattr(nn, conv_name)(input_shape[1], out_dim,
+                                          kernel_size,
+                                          stride=stride, padding=padding,
+                                          groups=groups, bias=bias,
+                                          device='cuda')
 
     with autocast(enabled=amp):
-        attorch_output = attorch_conv2d(attorch_input)
-        pytorch_output = pytorch_conv2d(pytorch_input)
+        attorch_output = attorch_conv(attorch_input)
+        pytorch_output = pytorch_conv(pytorch_input)
 
     assert_close((attorch_output, pytorch_output), rtol=1e-3, atol=1e-2)
 
     attorch_output.backward(create_input_like(attorch_output))
     pytorch_output.backward(create_input_like(pytorch_output))
 
-    bias_grad_pair = ((attorch_conv2d.bias.grad, pytorch_conv2d.bias.grad)
+    bias_grad_pair = ((attorch_conv.bias.grad, pytorch_conv.bias.grad)
                       if bias else (torch.tensor(0), torch.tensor(0)))
     assert_close((attorch_input.grad, pytorch_input.grad),
-                 (attorch_conv2d.weight.grad, pytorch_conv2d.weight.grad),
+                 (attorch_conv.weight.grad, pytorch_conv.weight.grad),
                  bias_grad_pair, rtol=1e-3, atol=1e-2)
