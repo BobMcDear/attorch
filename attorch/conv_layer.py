@@ -164,6 +164,62 @@ class Conv2dAutoGrad(torch.autograd.Function):
         return input_grad, weight_grad, bias_grad, None, None, None, None, None
 
 
+class Conv1d(nn.Conv1d):
+    """
+    1D-convolves over the input using weights, optionally adding bias.
+    See also base class.
+
+    Note: The Triton compiler does not perform well with convolutional kernels,
+    and a significant speed disparity between this module and its PyTorch equivalent
+    should be expected. Use at your own discretion.
+
+    Args:
+        in_channels: Number of input channels.
+        out_channels: Number of output channels.
+        kernel_size: Kernel size.
+        stride: Stride of kernel.
+        padding: Padding applied to the input.
+        dilation: Dilation of kernel. Only 1 is supported.
+        groups: Number of groups for the convolution.
+        bias: Flag for additive bias.
+        padding_mode: Padding mode. Only 'zeros' is supported.
+        device: Device to use.
+        dtype: Dtype of layer.
+
+    Raises:
+        RuntimeError: 1. A dilation other than 1 was passed.
+                      2. A padding mode other than 'zeros' was passed.
+    """
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = True,
+        padding_mode: str = 'zeros',
+        device: Device = 'cuda',
+        dtype: torch.dtype = torch.float32,
+        ) -> None:
+        super().__init__(in_channels, out_channels, kernel_size, stride, padding,
+                         dilation, groups, bias, padding_mode, device, dtype)
+
+        if self.dilation != (1,):
+            raise RuntimeError('Convolutional layer only supports dilation of 1.')
+
+        if self.padding_mode != 'zeros':
+            raise RuntimeError("Convolutional layer only support 'zeros' padding mode.")
+
+    def forward(self, input: Tensor) -> Tensor:
+        return Conv2dAutoGrad.apply(input.unsqueeze(-1), self.weight.unsqueeze(-1),
+                                    self.bias,
+                                    *self.stride, 1, *self.padding, 0,
+                                    self.groups).squeeze(-1)
+
+
 class Conv2d(nn.Conv2d):
     """
     2D-convolves over the input using weights, optionally adding bias.

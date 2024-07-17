@@ -6,7 +6,7 @@ written in Python using OpenAI's Triton.
 
 from .act_layers import GELU, ReLU, SiLU, Sigmoid, Tanh
 from .batch_norm_layer import BatchNorm1d, BatchNorm2d
-from .conv_layer import Conv2d
+from .conv_layer import Conv1d, Conv2d
 from .cross_entropy_loss_layer import CrossEntropyLoss
 from .dropout_layer import Dropout
 from .glu_layer import GLU
