@@ -50,7 +50,7 @@ def tanh(input):
     Returns:
         Input transformed by tanh.
     """
-    return tl.math.tanh(input)
+    return 2 * sigmoid(2 * input) - 1
 
 
 @triton.jit
