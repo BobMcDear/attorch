@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch import nn
-from torch.cuda.amp import custom_bwd, custom_fwd
+from torch.amp import custom_bwd, custom_fwd
 from triton import cdiv
 
 from .glu_kernels import glu_backward_kernel, glu_forward_kernel
@@ -21,7 +21,7 @@ class GLUAutoGrad(torch.autograd.Function):
     Autodiff for gated linear unit.
     """
     @staticmethod
-    @custom_fwd
+    @custom_fwd(device_type='cuda')
     def forward(
         ctx: Context,
         input: Tensor,
@@ -66,7 +66,7 @@ class GLUAutoGrad(torch.autograd.Function):
         return output
 
     @staticmethod
-    @custom_bwd
+    @custom_bwd(device_type='cuda')
     def backward(
         ctx: Context,
         output_grad: Tensor,
