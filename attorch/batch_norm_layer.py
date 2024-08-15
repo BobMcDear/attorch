@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch import nn
+from torch.amp import custom_bwd, custom_fwd
 from triton import cdiv
 
 from .act_kernels import act_func_backward_kernel
@@ -40,6 +41,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
     Autodiff for batch normalization.
     """
     @staticmethod
+    @custom_fwd(device_type='cuda')
     def forward(
         ctx: Context,
         input: Tensor,
@@ -154,6 +156,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
         return output.view_as(input)
 
     @staticmethod
+    @custom_bwd(device_type='cuda')
     def backward(
         ctx: Context,
         output_grad: Tensor,
