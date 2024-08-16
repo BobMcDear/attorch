@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -33,7 +32,7 @@ def test_p_loss_layers(
     attorch_loss = getattr(attorch, p_loss)(reduction=reduction)
     pytorch_loss = getattr(nn, p_loss)(reduction=reduction)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_loss(attorch_input, attorch_target)
         pytorch_output = pytorch_loss(pytorch_input, pytorch_target)
 

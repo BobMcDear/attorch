@@ -106,7 +106,7 @@ def train(
             input = input.to('cuda')
             target = target.to('cuda')
 
-            with torch.cuda.amp.autocast():
+            with torch.autocast('cuda'):
                 loss = model(input, target)
             loss.backward()
             optim.step()
@@ -122,7 +122,7 @@ def train(
                 input = input.to('cuda')
                 target = target.to('cuda')
 
-                with torch.cuda.amp.autocast():
+                with torch.autocast('cuda'):
                     output = model(input)
                 acc = (output.argmax(dim=-1) == target).float().mean()
                 avg_meter.update(acc.item(), len(input))
@@ -160,12 +160,12 @@ def main(
 
     for _ in range(10):
         model.train()
-        with torch.cuda.amp.autocast():
+        with torch.autocast('cuda'):
             loss = model(input, target)
         loss.backward()
 
         model.eval()
-        with torch.no_grad() and torch.cuda.amp.autocast():
+        with torch.no_grad() and torch.autocast('cuda'):
             model(input)
 
     model.train()

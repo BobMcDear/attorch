@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -35,7 +34,7 @@ def test_nll_loss_layer(
     attorch_loss = attorch.NLLLoss(reduction=reduction, weight=weight)
     pytorch_loss = nn.NLLLoss(reduction=reduction, weight=weight)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_loss(attorch_input, target)
         pytorch_output = pytorch_loss(pytorch_input, target)
 

@@ -2,8 +2,7 @@ from typing import Optional, Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 from torch.nn import functional as F
 
 import attorch
@@ -39,7 +38,7 @@ def test_linear_layer(
                                bias=bias, device='cuda')
     pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_linear(attorch_input)
         pytorch_output = pytorch_act(pytorch_linear(pytorch_input))
 

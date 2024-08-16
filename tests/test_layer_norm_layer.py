@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 from torch.nn import init
 
 import attorch
@@ -45,7 +44,7 @@ def test_layer_norm_layer(
         if bias:
             init.normal_(pytorch_layer_norm.bias)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_layer_norm(attorch_input)
         pytorch_output = pytorch_layer_norm(pytorch_input)
 

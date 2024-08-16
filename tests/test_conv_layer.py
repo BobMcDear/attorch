@@ -2,8 +2,7 @@ from typing import Tuple, Union
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -61,7 +60,7 @@ def test_conv2d_layer(
                                           groups=groups, bias=bias,
                                           device='cuda')
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_conv(attorch_input)
         pytorch_output = pytorch_conv(pytorch_input)
 

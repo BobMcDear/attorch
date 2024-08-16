@@ -6,8 +6,7 @@ Utilities for examples.
 from typing import Tuple
 
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 from triton.testing import do_bench
 
 
@@ -24,10 +23,10 @@ def benchmark_fw_and_bw(
         amp: Flag for running the forward pass using automatic mixed precision.
         **input: Input to the model.
     """
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         fw = do_bench(lambda: model(**input))
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         output = model(**input)
     output_grad = torch.randn_like(output)
     bw = do_bench(lambda: output.backward(output_grad, retain_graph=True))

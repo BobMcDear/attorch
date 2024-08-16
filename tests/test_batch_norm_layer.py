@@ -2,10 +2,8 @@ from typing import Optional, Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
-from torch.nn import init
-from torch.nn import functional as F
+from torch import autocast, nn
+from torch.nn import functional as F, init
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -66,7 +64,7 @@ def test_batch_norm_layer(
         init.normal_(pytorch_batch_norm.weight)
         init.normal_(pytorch_batch_norm.bias)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         if add_pre_act:
             attorch_output = attorch_batch_norm(attorch_input, attorch_residual)
             pytorch_output = pytorch_act(pytorch_batch_norm(pytorch_input) +
@@ -96,7 +94,7 @@ def test_batch_norm_layer(
     attorch_batch_norm.eval()
     pytorch_batch_norm.eval()
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         if add_pre_act:
             attorch_output = attorch_batch_norm(attorch_input, attorch_residual)
             pytorch_output = pytorch_act(pytorch_batch_norm(pytorch_input) +

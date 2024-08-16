@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -28,7 +27,7 @@ def test_softmax_layers(
     attorch_softmax = getattr(attorch, softmax)(dim=-1)
     pytorch_softmax = getattr(nn, softmax)(dim=-1)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_softmax(attorch_input)
         pytorch_output = pytorch_softmax(pytorch_input)
 

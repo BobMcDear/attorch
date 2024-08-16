@@ -136,7 +136,7 @@ class LinearAutoGrad(torch.autograd.Function):
 
         # Using PyTorch's matmul, but linear_forward_kernel
         # could have also been used.
-        with torch.cuda.amp.autocast(dtype=ctx.output_dtype):
+        with torch.autocast('cuda', dtype=ctx.output_dtype):
             input_grad = pre_act_grad @ weight.T if input.requires_grad else None
             weight_grad = (flattened_input.T @ pre_act_grad
                            if weight.requires_grad else None)

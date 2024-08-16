@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
@@ -30,7 +29,7 @@ def test_act_layers(
     attorch_act_func = getattr(attorch, act_func)(drop_p=drop_p)
     pytorch_act_func = getattr(nn, act_func)()
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_act_func(attorch_input)
         pytorch_output = pytorch_act_func(pytorch_input)
 

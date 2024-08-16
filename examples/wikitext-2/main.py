@@ -92,7 +92,7 @@ def train(
         for batch in train_dl:
             input = batch['input_ids'].to('cuda')
 
-            with torch.cuda.amp.autocast():
+            with torch.autocast('cuda'):
                 loss = model(input, return_loss=True)
             loss.backward()
             optim.step()
@@ -107,7 +107,7 @@ def train(
             for batch in valid_dl:
                 input = batch['input_ids'].to('cuda')
 
-                with torch.cuda.amp.autocast():
+                with torch.autocast('cuda'):
                     loss = model(input, return_loss=True)
                 avg_meter.update(loss.item(), len(input))
         print(f'Validation perplexity: {exp(avg_meter.avg)}')
@@ -143,12 +143,12 @@ def main(
 
     for _ in range(10):
         model.train()
-        with torch.cuda.amp.autocast():
+        with torch.autocast('cuda'):
             loss = model(input, return_loss=True)
         loss.backward()
 
         model.eval()
-        with torch.no_grad() and torch.cuda.amp.autocast():
+        with torch.no_grad() and torch.autocast('cuda'):
             model(input, return_loss=True)
 
     model.train()

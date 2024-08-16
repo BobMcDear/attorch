@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 
 import attorch
 from .utils import assert_close, create_input, default_shapes
@@ -33,7 +32,7 @@ def test_cross_entropy_loss_layer(
     attorch_loss = attorch.CrossEntropyLoss(weight=weight)
     pytorch_loss = nn.CrossEntropyLoss(weight=weight)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_loss(attorch_input, target)
         pytorch_output = pytorch_loss(pytorch_input, target)
 

@@ -2,8 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch import nn
-from torch.cuda.amp import autocast
+from torch import autocast, nn
 from torch.nn import init
 
 import attorch
@@ -63,7 +62,7 @@ def test_multi_head_attention_layer(
         init.normal_(pytorch_multi_head_attention.in_proj_bias)
         init.normal_(pytorch_multi_head_attention.out_proj.bias)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_multi_head_attention(attorch_input_q,
                                                       attorch_input_k,
                                                       attorch_input_v,

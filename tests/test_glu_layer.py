@@ -2,7 +2,7 @@ from typing import Tuple
 
 import pytest
 import torch
-from torch.cuda.amp import autocast
+from torch import autocast
 from torch.nn import functional as F
 
 import attorch
@@ -28,7 +28,7 @@ def test_glu_layer(
     attorch_glu = attorch.GLU(act_func=act_func)
     pytorch_glu = lambda input1, input2: input1 * getattr(F, act_func)(input2)
 
-    with autocast(enabled=amp):
+    with autocast('cuda', enabled=amp):
         attorch_output = attorch_glu(attorch_input)
         pytorch_output = pytorch_glu(*pytorch_input.chunk(2, dim=-1))
 
