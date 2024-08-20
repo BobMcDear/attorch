@@ -82,14 +82,14 @@ def layer_norm_forward_kernel(
     input = tl.load(input_pointer,
                     mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     mean = tl.sum(input, axis=1) / feat_dim
-    diff = tl.where(feat_mask[None, :], input - tl.expand_dims(mean, axis=1), 0)
+    diff = tl.where(feat_mask[None, :], input - mean[:, None], 0)
     inv_std = 1 / tl.sqrt(tl.sum(diff * diff, axis=1) / feat_dim + eps)
 
     if save_stats:
         tl.store(mean_pointer + batch_offset, mean, mask=batch_mask)
         tl.store(inv_std_pointer + batch_offset, inv_std, mask=batch_mask)
 
-    output = diff * tl.expand_dims(inv_std, axis=1)
+    output = diff * inv_std[:, None]
     if scale_by_weight:
         weight = tl.load(weight_pointer + feat_offset, mask=feat_mask)
         output *= weight
@@ -191,8 +191,7 @@ def layer_norm_backward_kernel(
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     mean = tl.load(mean_pointer + batch_offset, mask=batch_mask)
     inv_std = tl.load(inv_std_pointer + batch_offset, mask=batch_mask)
-    pre_lin = ((input - tl.expand_dims(mean, axis=1)) *
-               tl.expand_dims(inv_std, axis=1))
+    pre_lin = (input - mean[:, None]) * inv_std[:, None]
 
     if scale_by_weight:
         weight = tl.load(weight_pointer + feat_offset, mask=feat_mask)
@@ -202,11 +201,10 @@ def layer_norm_backward_kernel(
         weight_output_grad_prod = output_grad
 
     term1 = tl.sum(pre_lin * weight_output_grad_prod, axis=1) / feat_dim
-    term1 = pre_lin * tl.expand_dims(term1, axis=1)
-    term2 = tl.expand_dims(tl.sum(weight_output_grad_prod, axis=1) / feat_dim,
-                           axis=1)
-    input_grad = (tl.expand_dims(inv_std, axis=1) *
-                  (weight_output_grad_prod - (term1 + term2)))
+    term1 = pre_lin * term1[:, None]
+    term2 = tl.sum(weight_output_grad_prod, axis=1) / feat_dim
+    input_grad = (inv_std[:, None] *
+                  (weight_output_grad_prod - (term1 + term2[:, None])))
 
     tl.store(input_grad_pointer, input_grad,
              mask=batch_mask[:, None] & feat_mask[None, :])
