@@ -7,7 +7,7 @@ This example trains and benchmarks a language model on the WikiText-2 dataset.
 The requirements for this example, aside from attorch and its dependencies, are,
 
 * ```datasets==2.18.0```
-* ```transformers==4.38.0```
+* ```transformers==4.39.0```
 
 ## Training
 

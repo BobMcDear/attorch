@@ -6,7 +6,7 @@ This example trains and benchmarks a vision model on the Imagenette classificati
 
 The requirement for this example, aside from attorch and its dependencies, is,
 
-* ```torchvision==0.17.0```
+* ```torchvision==0.19.0```
 
 ## Training
 
