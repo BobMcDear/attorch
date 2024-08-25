@@ -15,4 +15,5 @@ from .linear_layer import Linear
 from .multi_head_attention_layer import MultiheadAttention
 from .nll_loss_layer import NLLLoss
 from .p_loss_layers import L1Loss, MSELoss
+from .rms_norm_layer import RMSNorm
 from .softmax_layers import LogSoftmax, Softmax, Softmin
