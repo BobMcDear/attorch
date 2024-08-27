@@ -36,6 +36,7 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.BatchNorm1d```: Batch-normalizes the 2D or 3D input, optionally fusing an activation function and adding a residual to the pre-activation result.
 * ```attorch.BatchNorm2d```: Batch-normalizes the 4D input, optionally fusing an activation function and adding a residual to the pre-activation result.
 * ```attorch.LayerNorm```: Layer-normalizes the input.
+* ```attorch.RMSNorm```: Root-mean-square-normalizes the input.
 * ```attorch.Linear```: Linearly transforms the input using weights, optionally adding bias and fusing an activation function.
 * ```attorch.Dropout```: Randomly zeroes elements in the input during training.
 * ```attorch.L1Loss```: Measures the mean absolute error between the input and target.
