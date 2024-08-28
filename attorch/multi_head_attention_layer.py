@@ -10,8 +10,8 @@ import torch
 from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
-from triton.ops import attention
 
+from .multi_head_attention_kernels import _attention
 from .types import Device
 
 
@@ -158,6 +158,6 @@ class MultiheadAttention(nn.MultiheadAttention):
             q, k, v = map(partial(extract_heads, num_heads=self.num_heads),
                           [q, k, v])
 
-        output = attention(q, k, v, causal, 0.5, sequence_parallel)
+        output = _attention.apply(q, k, v, causal, 0.5, sequence_parallel)
         output = output.transpose(1, 2).reshape(len(input_q), -1, self.embed_dim)
         return self.out_proj(output)
