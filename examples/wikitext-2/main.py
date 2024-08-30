@@ -81,6 +81,8 @@ def train(
     model = model.to('cuda')
     optim = AdamW(model.parameters(), lr=sqrt(batch_size / 32) * 4e-4)
     optim.zero_grad()
+    scaler = torch.GradScaler('cuda')
+
     avg_meter = AvgMeter()
     start = time.time()
 
@@ -94,8 +96,10 @@ def train(
 
             with torch.autocast('cuda'):
                 loss = model(input, return_loss=True)
-            loss.backward()
-            optim.step()
+
+            scaler.scale(loss).backward()
+            scaler.step(optim)
+            scaler.update()
             optim.zero_grad()
 
             avg_meter.update(loss.item(), len(input))
