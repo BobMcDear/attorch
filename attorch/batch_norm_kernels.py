@@ -160,7 +160,7 @@ def batch_norm_forward_kernel(
             var += tl.sum(deltas)
 
         var /= count
-        inv_std = 1 / tl.sqrt(var + eps)
+        inv_std = tl.rsqrt(var + eps)
 
         if save_stats:
             tl.store(feat_pid + mean_pointer, mean)
@@ -181,7 +181,7 @@ def batch_norm_forward_kernel(
 
     else:
         mean = tl.load(feat_pid + running_mean_pointer)
-        inv_std = 1 / tl.sqrt(tl.load(feat_pid + running_var_pointer) + eps)
+        inv_std = tl.rsqrt(tl.load(feat_pid + running_var_pointer) + eps)
 
     if affine:
         weight = tl.load(feat_pid + weight_pointer)

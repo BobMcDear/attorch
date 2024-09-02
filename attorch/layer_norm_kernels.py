@@ -83,7 +83,7 @@ def layer_norm_forward_kernel(
                     mask=batch_mask[:, None] & feat_mask[None, :]).to(tl.float32)
     mean = tl.sum(input, axis=1) / feat_dim
     diff = tl.where(feat_mask[None, :], input - mean[:, None], 0)
-    inv_std = 1 / tl.sqrt(tl.sum(diff * diff, axis=1) / feat_dim + eps)
+    inv_std = tl.rsqrt(tl.sum(diff * diff, axis=1) / feat_dim + eps)
 
     if save_stats:
         tl.store(mean_pointer + batch_offset, mean, mask=batch_mask)

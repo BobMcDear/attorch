@@ -109,7 +109,7 @@ def calc_mean_and_inv_std(input, last_dim, eps,
 
     mean = tl.sum(input, axis=1) / last_dim
     diff = tl.where(last_dim_mask[None, :], input - mean[:, None], 0)
-    inv_std = 1 / tl.sqrt(tl.sum(diff * diff, axis=1) / last_dim + eps)
+    inv_std = tl.rsqrt(tl.sum(diff * diff, axis=1) / last_dim + eps)
 
     return mean, inv_std
 
