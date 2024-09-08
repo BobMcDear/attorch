@@ -182,7 +182,7 @@ class LayerNorm(nn.LayerNorm):
         dtype: Dtype of layer.
 
     Raises:
-        RuntimeError: 1. Normalized shape was not an integer.
+        RuntimeError: Normalized shape was not an integer.
     """
     def __init__(
         self,
