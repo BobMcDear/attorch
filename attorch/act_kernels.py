@@ -157,6 +157,154 @@ def silu_grad(input):
 
 
 @triton.jit
+def relu6(input):
+    """
+    Applies ReLU6 to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by ReLU6.
+    """
+    return tl.minimum(relu(input), 6)
+
+
+@triton.jit
+def relu6_grad(input):
+    """
+    Calculates the gradient of ReLU6.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of ReLU6.
+    """
+    return tl.where((0 < input) & (input < 6), 1, 0)
+
+
+@triton.jit
+def hardsigmoid(input):
+    """
+    Applies hard sigmoid to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by hard sigmoid.
+    """
+    return tl.maximum(0, tl.minimum(1, input / 6 + 0.5))
+
+
+@triton.jit
+def hardsigmoid_grad(input):
+    """
+    Calculates the gradient of hard sigmoid.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of hard sigmoid.
+    """
+    return tl.where((-3 < input) & (input < 3), 1 / 6, 0)
+
+
+@triton.jit
+def hardswish(input):
+    """
+    Applies hard Swish to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by hard Swish.
+    """
+    return input * relu6(input + 3) / 6
+
+
+@triton.jit
+def hardswish_grad(input):
+    """
+    Calculates the gradient of hard Swish.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of hard Swish.
+    """
+    return (relu6(input + 3) + input * relu6_grad(input + 3)) / 6
+
+
+@triton.jit
+def selu(input):
+    """
+    Applies SELU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by SELU.
+    """
+    scale = 1.0507009873554804934193349852946
+    alpha = 1.6732632423543772848170429916717
+    return scale * (tl.maximum(0, input) +
+                    tl.minimum(0, alpha * (tl.exp(input) - 1)))
+
+
+@triton.jit
+def selu_grad(input):
+    """
+    Calculates the gradient of SELU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of SELU.
+    """
+    scale = 1.0507009873554804934193349852946
+    alpha = 1.6732632423543772848170429916717
+    return scale * tl.where(input <= 0, alpha * tl.exp(input), 1)
+
+
+@triton.jit
+def mish(input):
+    """
+    Applies Mish to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by Mish.
+    """
+    return input * tanh(tl.log(1 + tl.exp(input)))
+
+
+@triton.jit
+def mish_grad(input):
+    """
+    Calculates the gradient of Mish.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of Mish.
+    """
+    exp = tl.exp(input)
+    delta = exp * (exp + 2) + 2
+    return (exp * (exp * ((4 * input + 6) + exp * (exp + 4)) + 4 * (input + 1)) /
+            (delta * delta))
+
+
+@triton.jit
 def apply_act_func(input, drop_p, seed, offset,
                    act_func: tl.constexpr, dropout: tl.constexpr):
     """
@@ -168,31 +316,49 @@ def apply_act_func(input, drop_p, seed, offset,
         seed: Seed for generating the dropout mask if dropout is True.
         offset: Offset to generate the dropout mask for if dropout is True.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
         Input transformed by the desired activation function,
         potentially with fused dropout.
     """
-    # All activation functions, except ReLU, require FP32 inputs.
-    if act_func != 'relu':
-        input = input.to(tl.float32)
-
     if act_func == 'sigmoid':
+        input = input.to(tl.float32)
         output = sigmoid(input)
 
     elif act_func == 'tanh':
+        input = input.to(tl.float32)
         output = tanh(input)
 
     elif act_func == 'relu':
         output = relu(input)
 
     elif act_func == 'gelu':
+        input = input.to(tl.float32)
         output = gelu(input)
 
     elif act_func == 'silu':
+        input = input.to(tl.float32)
         output = silu(input)
+
+    elif act_func == 'relu6':
+        output = relu6(input)
+
+    elif act_func == 'hardsigmoid':
+        output = hardsigmoid(input)
+
+    elif act_func == 'hardswish':
+        output = hardswish(input)
+
+    elif act_func == 'selu':
+        input = input.to(tl.float32)
+        output = selu(input)
+
+    elif act_func == 'mish':
+        input = input.to(tl.float32)
+        output = mish(input)
 
     if dropout:
         output = apply_dropout(output, drop_p, seed, offset)
@@ -214,30 +380,48 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
         seed: Seed for generating the dropout mask if dropout is True.
         offset: Offset to generate the dropout mask for if dropout is True.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
         Gradient of the desired activation function.
     """
-    # All activation function derivatives, except ReLU's, require FP32 inputs.
-    if act_func != 'relu':
-        input = input.to(tl.float32)
-
     if act_func == 'sigmoid':
+        input = input.to(tl.float32)
         output = sigmoid_grad(input)
 
     elif act_func == 'tanh':
+        input = input.to(tl.float32)
         output = tanh_grad(input)
 
     elif act_func == 'relu':
         output = relu_grad(input)
 
     elif act_func == 'gelu':
+        input = input.to(tl.float32)
         output = gelu_grad(input)
 
     elif act_func == 'silu':
+        input = input.to(tl.float32)
         output = silu_grad(input)
+
+    elif act_func == 'relu6':
+        output = relu6_grad(input)
+
+    elif act_func == 'hardsigmoid':
+        output = hardsigmoid_grad(input)
+
+    elif act_func == 'hardswish':
+        output = hardswish_grad(input)
+
+    elif act_func == 'selu':
+        input = input.to(tl.float32)
+        output = selu_grad(input)
+
+    elif act_func == 'mish':
+        input = input.to(tl.float32)
+        output = mish_grad(input)
 
     if dropout:
         output_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
@@ -268,7 +452,8 @@ def act_func_forward_kernel(
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -308,7 +493,8 @@ def act_func_backward_kernel(
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
