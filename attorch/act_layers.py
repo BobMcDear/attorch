@@ -38,7 +38,8 @@ class ActFuncAutoGrad(torch.autograd.Function):
             input: Input to transform.
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
             drop_p: Probability of dropping an element for dropout.
             training: Flag indicating if the model is in training mode,
                 only applicable if drop_p is greater than 0.
@@ -195,3 +196,113 @@ class SiLU(nn.SiLU):
 
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input, 'silu', self.drop_p, self.training)
+
+
+class ReLU6(nn.ReLU6):
+    """
+    Applied ReLU6 to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, inplace: bool = False, drop_p: float = 0.0) -> None:
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place ReLU6 currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'relu6', self.drop_p, self.training)
+
+
+class Hardsigmoid(nn.Hardsigmoid):
+    """
+    Applied hard sigmoid to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, inplace: bool = False, drop_p: float = 0.0) -> None:
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place hard sigmoid currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'hardsigmoid', self.drop_p, self.training)
+
+
+class Hardswish(nn.Hardswish):
+    """
+    Applied hard Swish to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, inplace: bool = False, drop_p: float = 0.0) -> None:
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place hard Swish currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'hardswish', self.drop_p, self.training)
+
+
+class SELU(nn.SELU):
+    """
+    Applied SELU to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, inplace: bool = False, drop_p: float = 0.0) -> None:
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place SELU currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'selu', self.drop_p, self.training)
+
+
+class Mish(nn.Mish):
+    """
+    Applied Mish to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, inplace: bool = False, drop_p: float = 0.0) -> None:
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place mish currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'mish', self.drop_p, self.training)
