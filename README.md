@@ -24,9 +24,14 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.Conv1d```: 1D-convolves over the input using weights, optionally adding bias.
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
 * ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
+* ```attorch.Hardsigmoid```: Applies hard sigmoid to the input, optionally fusing dropout.
+* ```attorch.Hardswish```: Applies hard Swish to the input, optionally fusing dropout.
 * ```attorch.GELU```: Applies GELU to the input, optionally fusing dropout.
 * ```attorch.ReLU```: Applies ReLU to the input, optionally fusing dropout.
+* ```attorch.ReLU6```: Applies ReLU6 to the input, optionally fusing dropout.
+* ```attorch.SELU```: Applies SELU to the input, optionally fusing dropout.
 * ```attorch.SiLU```: Applies SiLU to the input, optionally fusing dropout.
+* ```attorch.Mish```: Applies Mish to the input, optionally fusing dropout.
 * ```attorch.Sigmoid```: Applies sigmoid to the input, optionally fusing dropout.
 * ```attorch.Tanh```: Applies tanh to the input, optionally fusing dropout.
 * ```attorch.GLU```: Applies the gated linear unit with an arbitrary activation function to the input.
