@@ -33,7 +33,8 @@ def glu_forward_kernel(
             The container must be contiguous and contain size elements.
         size: Number of elements in each half of the input.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE elements.
@@ -75,7 +76,8 @@ def glu_backward_kernel(
             The container must be contiguous and contain size elements.
         size: Number of elements in each half of the input.
         act_func: Name of activation function used in gating.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         BLOCK_SIZE: Block size.
     """
     # This program processes BLOCK_SIZE elements.

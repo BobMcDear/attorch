@@ -80,7 +80,8 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 is_train is also True.
             pre_act_add: Optional residual added to the pre-activation result.
             act_func: Name of activation function to apply, with None for identity.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
 
         Returns:
             Batch-normalized input, potentially with fused activation and added residual.
@@ -245,7 +246,8 @@ class BatchNorm1d(nn.BatchNorm1d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         device: Device to use.
         dtype: Dtype of layer.
     """
@@ -294,7 +296,8 @@ class BatchNorm2d(nn.BatchNorm2d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         device: Device to use.
         dtype: Dtype of layer.
     """

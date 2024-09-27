@@ -47,7 +47,8 @@ def glu(input1, input2, act_func: tl.constexpr):
         input2: Second half of input to gate.
             The second half must be of the same shape as the first half.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
 
     Args:
         Input transformed by the gated linear unit

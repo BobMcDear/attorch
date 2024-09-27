@@ -38,7 +38,8 @@ class GLUAutoGrad(torch.autograd.Function):
                 Can have arbitrary shape but dimension dim must be even.
             dim: Dimension over which to gate.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
 
         Returns:
             Input transformed by the gated linear unit
@@ -107,7 +108,8 @@ class GLU(nn.GLU):
     Args:
         dim: Dimension over which to gate.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
     """
     def __init__(self, dim: int = -1, act_func: str = 'sigmoid') -> None:
         super().__init__(dim)

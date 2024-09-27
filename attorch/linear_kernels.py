@@ -105,7 +105,8 @@ def linear_forward_kernel(
             output container's feature dimension.
         add_bias: Flag for adding a bias vector.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', and 'silu'.
+            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
         save_pre_act: Flag for saving the pre-activation input.
         fp16: Flag for loading the input, weights, and bias in FP16.
         tf32: Flag for performing matrix products in TF32.
