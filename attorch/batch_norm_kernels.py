@@ -51,7 +51,7 @@ def batch_norm_forward_kernel(
     pre_act_add_batch_stride, pre_act_add_feat_stride, pre_act_add_spatial_stride,
     pre_act_batch_stride, pre_act_feat_stride, pre_act_spatial_stride,
     output_batch_stride, output_feat_stride, output_spatial_stride,
-    momentum, eps,
+    momentum, eps, param,
     affine: tl.constexpr, save_stats: tl.constexpr,
     track_running_stats: tl.constexpr, is_train: tl.constexpr,
     add_pre_act: tl.constexpr, act_func: tl.constexpr, save_pre_act: tl.constexpr,
@@ -115,6 +115,7 @@ def batch_norm_forward_kernel(
         momentum: Momentum for the running mean and variance.
         eps: Epsilon added in the square root in the denominator
             to avoid division by zero.
+        param: Parameter in the case of parameterized activation functions.
         affine: Flag for performing an affine transformation on the normalized output.
         save_stats: Flag for saving the mean and standard deviation.
         track_running_stats: Flag for tracking running mean and variance if
@@ -123,7 +124,7 @@ def batch_norm_forward_kernel(
         add_pre_act: Flag for adding the residual to the pre-activation result.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         save_pre_act: Flag for saving the pre-activation input.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_SPATIAL: Block size across the spatial dimension.
@@ -228,7 +229,7 @@ def batch_norm_forward_kernel(
                 tl.store(curr_pre_act_pointer, output,
                          mask=batch_mask[:, None] & spatial_mask[None, :])
 
-            output = apply_act_func(output, None, None, None, act_func, False)
+            output = apply_act_func(output, None, None, None, param, act_func, False)
 
         tl.store(curr_output_pointer, output,
                  mask=batch_mask[:, None] & spatial_mask[None, :])

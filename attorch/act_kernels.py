@@ -305,7 +305,37 @@ def mish_grad(input):
 
 
 @triton.jit
-def apply_act_func(input, drop_p, seed, offset,
+def leaky_relu(input, negative_slope):
+    """
+    Applies leaky ReLU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        negative_slope: Slope of the negative component.
+
+    Returns:
+        Input transformed by leaky ReLU.
+    """
+    return relu(input) + negative_slope * tl.minimum(0, input)
+
+
+@triton.jit
+def leaky_relu_grad(input, negative_slope):
+    """
+    Calculates the gradient of leaky ReLU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        negative_slope: Slope of the negative component.
+
+    Returns:
+        Gradient of leaky ReLU.
+    """
+    return tl.where(input <= 0, negative_slope, 1)
+
+
+@triton.jit
+def apply_act_func(input, drop_p, seed, offset, param,
                    act_func: tl.constexpr, dropout: tl.constexpr):
     """
     Applies an activation function to the input, optionally fusing dropout.
@@ -315,9 +345,10 @@ def apply_act_func(input, drop_p, seed, offset,
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
         offset: Offset to generate the dropout mask for if dropout is True.
+        param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -360,6 +391,9 @@ def apply_act_func(input, drop_p, seed, offset,
         input = input.to(tl.float32)
         output = mish(input)
 
+    elif act_func == 'leaky_relu':
+        output = leaky_relu(input, param)
+
     if dropout:
         output = apply_dropout(output, drop_p, seed, offset)
 
@@ -367,7 +401,7 @@ def apply_act_func(input, drop_p, seed, offset,
 
 
 @triton.jit
-def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
+def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
                         act_func: tl.constexpr, dropout: tl.constexpr):
     """
     Calculates the gradient of an activation function.
@@ -379,9 +413,10 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
         offset: Offset to generate the dropout mask for if dropout is True.
+        param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function whose gradient is calculated.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -423,6 +458,9 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
         input = input.to(tl.float32)
         output = mish_grad(input)
 
+    elif act_func == 'leaky_relu':
+        output = leaky_relu_grad(input, param)
+
     if dropout:
         output_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
 
@@ -436,7 +474,7 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset,
 @triton.jit
 def act_func_forward_kernel(
     input_pointer, output_pointer, size,
-    drop_p, seed,
+    drop_p, seed, param,
     act_func: tl.constexpr, dropout: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
@@ -451,9 +489,10 @@ def act_func_forward_kernel(
         size: Number of elements in the input.
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
+        param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -464,7 +503,8 @@ def act_func_forward_kernel(
 
     input = tl.load(input_pointer + offset, mask=mask)
     tl.store(output_pointer + offset,
-             apply_act_func(input, drop_p, seed, offset, act_func, dropout),
+             apply_act_func(input, drop_p, seed, offset,
+                            param, act_func, dropout),
              mask=mask)
 
 
@@ -475,7 +515,7 @@ def act_func_forward_kernel(
 @triton.jit
 def act_func_backward_kernel(
     output_grad_pointer, input_pointer, input_grad_pointer, size,
-    drop_p, seed,
+    drop_p, seed, param,
     act_func: tl.constexpr, dropout: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
@@ -492,9 +532,10 @@ def act_func_backward_kernel(
         size: Number of elements in the input.
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
+        param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function whose gradient is calculated.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -507,5 +548,6 @@ def act_func_backward_kernel(
     input = tl.load(input_pointer + offset, mask=mask)
 
     tl.store(input_grad_pointer + offset,
-             apply_act_func_grad(output_grad, input, drop_p, seed, offset, act_func, dropout),
+             apply_act_func_grad(output_grad, input, drop_p, seed,
+                                 offset, param, act_func, dropout),
              mask=mask)

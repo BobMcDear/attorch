@@ -39,12 +39,21 @@ class GLUAutoGrad(torch.autograd.Function):
             dim: Dimension over which to gate.
             act_func: Name of activation function to apply.
                 Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+                for leaky ReLU with a negative slope of 0.01).
 
         Returns:
             Input transformed by the gated linear unit
             with an arbitrary activation function.
         """
+        param = None
+        if '_' in act_func:
+            comps = act_func.split('_')
+            act_func = '_'.join(comps[:-1])
+            param = float(comps[-1])
+
         input1, input2 = input.chunk(2, dim=dim)
         input1 = input1.contiguous()
         input2 = input2.contiguous()
@@ -53,6 +62,7 @@ class GLUAutoGrad(torch.autograd.Function):
         size = input1.numel()
         output = torch.empty_like(input1)
 
+        ctx.param = param
         ctx.act_func = act_func
         ctx.dim = dim
         ctx.size = size
@@ -62,7 +72,7 @@ class GLUAutoGrad(torch.autograd.Function):
         # Launches 1D grid where each program operates over
         # BLOCK_SIZE elements.
         grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
-        glu_forward_kernel[grid](input1, input2, output, size, act_func)
+        glu_forward_kernel[grid](input1, input2, output, size, param, act_func)
 
         return output
 
@@ -92,7 +102,7 @@ class GLUAutoGrad(torch.autograd.Function):
         grid = lambda META: (cdiv(ctx.size, META['BLOCK_SIZE']),)
         glu_backward_kernel[grid](output_grad, input1, input2,
                                   input1_grad, input2_grad,
-                                  ctx.size, ctx.act_func)
+                                  ctx.size, ctx.param, ctx.act_func)
 
         # Pads output with None because a gradient is necessary for
         # all input arguments.
@@ -109,7 +119,10 @@ class GLU(nn.GLU):
         dim: Dimension over which to gate.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+            for leaky ReLU with a negative slope of 0.01).
     """
     def __init__(self, dim: int = -1, act_func: str = 'sigmoid') -> None:
         super().__init__(dim)

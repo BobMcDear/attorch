@@ -4,8 +4,8 @@ written in Python using OpenAI's Triton.
 """
 
 
-from .act_layers import GELU, Hardsigmoid, Hardswish, Mish, ReLU, ReLU6, \
-    SELU, SiLU, Sigmoid, Tanh
+from .act_layers import GELU, Hardsigmoid, Hardswish, LeakyReLU, Mish, ReLU, \
+    ReLU6, SELU, SiLU, Sigmoid, Tanh
 from .batch_norm_layer import BatchNorm1d, BatchNorm2d
 from .conv_layer import Conv1d, Conv2d
 from .cross_entropy_loss_layer import CrossEntropyLoss

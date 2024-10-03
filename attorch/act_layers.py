@@ -39,7 +39,10 @@ class ActFuncAutoGrad(torch.autograd.Function):
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
                 Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+                for leaky ReLU with a negative slope of 0.01).
             drop_p: Probability of dropping an element for dropout.
             training: Flag indicating if the model is in training mode,
                 only applicable if drop_p is greater than 0.
@@ -49,6 +52,13 @@ class ActFuncAutoGrad(torch.autograd.Function):
             Input transformed by the desired activation function,
             potentially with fused dropout.
         """
+        param = None
+        if '_' in act_func:
+            comps = act_func.split('_')
+            act_func = '_'.join(comps[:-1])
+            param = float(comps[-1])
+
+        ctx.param = param
         ctx.act_func = act_func
         ctx.drop_p = drop_p
         ctx.dropout = drop_p > 0 and training
@@ -65,7 +75,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
         # BLOCK_SIZE elements.
         grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         act_func_forward_kernel[grid](flattened_input, output, size,
-                                      drop_p, seed,
+                                      drop_p, seed, param,
                                       act_func, ctx.dropout)
 
         return output.view_as(input)
@@ -98,7 +108,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
         # BLOCK_SIZE elements.
         grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         act_func_backward_kernel[grid](output_grad, flattened_input, input_grad,
-                                       size, ctx.drop_p, ctx.seed,
+                                       size, ctx.drop_p, ctx.seed, ctx.param,
                                        ctx.act_func, ctx.dropout)
 
         # Pads output with None because a gradient is necessary for
@@ -178,7 +188,7 @@ class GELU(nn.GELU):
 
 class SiLU(nn.SiLU):
     """
-    Applied SiLU to the input, optionally fusing dropout.
+    Applies SiLU to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -200,7 +210,7 @@ class SiLU(nn.SiLU):
 
 class ReLU6(nn.ReLU6):
     """
-    Applied ReLU6 to the input, optionally fusing dropout.
+    Applies ReLU6 to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -222,7 +232,7 @@ class ReLU6(nn.ReLU6):
 
 class Hardsigmoid(nn.Hardsigmoid):
     """
-    Applied hard sigmoid to the input, optionally fusing dropout.
+    Applies hard sigmoid to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -244,7 +254,7 @@ class Hardsigmoid(nn.Hardsigmoid):
 
 class Hardswish(nn.Hardswish):
     """
-    Applied hard Swish to the input, optionally fusing dropout.
+    Applies hard Swish to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -266,7 +276,7 @@ class Hardswish(nn.Hardswish):
 
 class SELU(nn.SELU):
     """
-    Applied SELU to the input, optionally fusing dropout.
+    Applies SELU to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -288,7 +298,7 @@ class SELU(nn.SELU):
 
 class Mish(nn.Mish):
     """
-    Applied Mish to the input, optionally fusing dropout.
+    Applies Mish to the input, optionally fusing dropout.
     See also base class.
 
     Args:
@@ -301,8 +311,39 @@ class Mish(nn.Mish):
         self.drop_p = drop_p
 
         if inplace is True:
-            warnings.warn('In-place mish currently not supported; '
+            warnings.warn('In-place Mish currently not supported; '
                           'falling back to out-of-place.')
 
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input, 'mish', self.drop_p, self.training)
+
+
+class LeakyReLU(nn.LeakyReLU):
+    """
+    Applies leaky ReLU to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        negative_slope: Slope of the negative component.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(
+        self,
+        inplace: bool = False,
+        negative_slope: float = 1e-2,
+        drop_p: float = 0.0,
+        ) -> None:
+        super().__init__(inplace=False)
+        self.negative_slope = negative_slope
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place leaky ReLU currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input,
+                                     'leaky_relu_' + str(self.negative_slope),
+                                     self.drop_p, self.training)

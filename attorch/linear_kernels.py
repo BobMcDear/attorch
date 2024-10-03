@@ -62,7 +62,7 @@ def linear_forward_kernel(
     input_batch_stride, input_in_feat_stride,
     weight_in_feat_stride, weight_out_feat_stride,
     pre_act_batch_stride, pre_act_out_feat_stride,
-    output_batch_stride, output_out_feat_stride,
+    output_batch_stride, output_out_feat_stride, param,
     add_bias: tl.constexpr, act_func: tl.constexpr, save_pre_act: tl.constexpr,
     fp16: tl.constexpr, tf32: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_IN_FEAT: tl.constexpr,
@@ -103,10 +103,11 @@ def linear_forward_kernel(
             output container's batch dimension.
         output_out_feat_stride: Stride necessary to jump one element along the
             output container's feature dimension.
+        param: Parameter in the case of parameterized activation functions.
         add_bias: Flag for adding a bias vector.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         save_pre_act: Flag for saving the pre-activation input.
         fp16: Flag for loading the input, weights, and bias in FP16.
         tf32: Flag for performing matrix products in TF32.
@@ -178,7 +179,7 @@ def linear_forward_kernel(
             tl.store(pre_act_pointer, accum,
                      mask=batch_mask[:, None] & out_feat_mask[None, :])
 
-        accum = apply_act_func(accum, None, None, None, act_func, False)
+        accum = apply_act_func(accum, None, None, None, param, act_func, False)
 
     output_pointer += (output_batch_stride * batch_offset[:, None] +
                        output_out_feat_stride * out_feat_offset[None, :])

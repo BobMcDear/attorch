@@ -41,7 +41,10 @@ class LinearAutoGrad(torch.autograd.Function):
                 If provided, must be of shape [out_feat_dim].
             act_func: Name of activation function to apply, with None for identity.
                 Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+                for leaky ReLU with a negative slope of 0.01).
 
         Returns:
             Input linearly transformed, potentially with added biased and
@@ -56,6 +59,12 @@ class LinearAutoGrad(torch.autograd.Function):
             f'Incompatible input ({input.shape}) and weights ({weight.shape}) shape'
         assert bias is None or weight.shape[1] == bias.shape[0], \
             f'Incompatible weights ({weight.shape}) and bias ({bias.shape}) shape'
+
+        param = None
+        if '_' in act_func:
+            comps = act_func.split('_')
+            act_func = '_'.join(comps[:-1])
+            param = float(comps[-1])
 
         flattened_input = input.flatten(0, -2)
         batch_dim, in_feat_dim = flattened_input.shape
@@ -81,11 +90,12 @@ class LinearAutoGrad(torch.autograd.Function):
                                     pre_act, output,
                                     batch_dim, in_feat_dim, out_feat_dim,
                                     *flattened_input.stride(), *weight.stride(),
-                                    *pre_act.stride(), *output.stride(),
+                                    *pre_act.stride(), *output.stride(), param,
                                     add_bias=bias is not None, act_func=act_func,
                                     save_pre_act=save_pre_act,
                                     fp16=output_dtype is torch.float16)
 
+        ctx.param = param
         ctx.act_func = act_func
         ctx.bias_requires_grad = False if bias is None else bias.requires_grad
         ctx.output_dtype = output_dtype
@@ -130,7 +140,7 @@ class LinearAutoGrad(torch.autograd.Function):
             # BLOCK_SIZE elements.
             grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
             act_func_backward_kernel[grid](output_grad, pre_act, pre_act_grad,
-                                           size, None, None,
+                                           size, None, None, ctx.param,
                                            ctx.act_func, False)
 
             pre_act_grad = pre_act_grad.view_as(pre_act)
@@ -166,7 +176,10 @@ class Linear(nn.Linear):
         bias: Flag for additive bias.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+            for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
         dtype: Dtype of layer.
     """

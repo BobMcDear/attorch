@@ -81,11 +81,23 @@ class BatchNormAutoGrad(torch.autograd.Function):
             pre_act_add: Optional residual added to the pre-activation result.
             act_func: Name of activation function to apply, with None for identity.
                 Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+                for leaky ReLU with a negative slope of 0.01).
 
         Returns:
             Batch-normalized input, potentially with fused activation and added residual.
         """
+        param = None
+        if '_' in act_func:
+            comps = act_func.split('_')
+            act_func = '_'.join(comps[:-1])
+            param = float(comps[-1])
+
+        ctx.param = param
+        ctx.act_func = act_func
+
         add_pre_act = pre_act_add is not None
         pre_act_add = (pre_act_add if add_pre_act else
                        torch.empty((1, 1, 1), device='cuda'))
@@ -133,7 +145,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
                                         batch_dim, spatial_dim,
                                         *input_3d.stride(), *pre_act_add.stride(),
                                         *pre_act.stride(), *output.stride(),
-                                        momentum, eps,
+                                        momentum, eps, param,
                                         affine=affine,
                                         save_stats=requires_grad,
                                         track_running_stats=track_running_stats,
@@ -189,7 +201,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
             grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
             act_func_backward_kernel[grid](output_grad.flatten(), pre_act,
                                            pre_act_grad, size, None, None,
-                                           ctx.act_func, False)
+                                           ctx.param, ctx.act_func, False)
 
             pre_act_grad = pre_act_grad.view_as(pre_act)
 
@@ -247,7 +259,10 @@ class BatchNorm1d(nn.BatchNorm1d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+            for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
         dtype: Dtype of layer.
     """
@@ -297,7 +312,10 @@ class BatchNorm2d(nn.BatchNorm2d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', and 'mish'.
+            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
+            for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
         dtype: Dtype of layer.
     """
