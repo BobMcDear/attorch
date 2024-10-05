@@ -14,7 +14,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('bias', [False, True])
 @pytest.mark.parametrize('act_func', [None, 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
                                       'relu6', 'hardsigmoid', 'hardswish', 'selu',
-                                      'mish'])
+                                      'mish', 'leaky_relu'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_linear_layer(
@@ -33,7 +33,8 @@ def test_linear_layer(
 
     torch.manual_seed(0)
     attorch_linear = attorch.Linear(input_shape[-1], out_dim,
-                                    bias=bias, act_func=act_func)
+                                    bias=bias,
+                                    act_func=act_func + ('_0.01' if '_' in act_func else ''))
 
     torch.manual_seed(0)
     pytorch_linear = nn.Linear(input_shape[-1], out_dim,
