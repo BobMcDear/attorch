@@ -26,6 +26,7 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
 * ```attorch.Hardsigmoid```: Applies hard sigmoid to the input, optionally fusing dropout.
 * ```attorch.Hardswish```: Applies hard Swish to the input, optionally fusing dropout.
+* ```attorch.LeakyReLU```: Applies leaky ReLU to the input, optionally fusing dropout.
 * ```attorch.GELU```: Applies GELU to the input, optionally fusing dropout.
 * ```attorch.ReLU```: Applies ReLU to the input, optionally fusing dropout.
 * ```attorch.ReLU6```: Applies ReLU6 to the input, optionally fusing dropout.
