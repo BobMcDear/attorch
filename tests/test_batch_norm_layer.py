@@ -49,7 +49,8 @@ def test_batch_norm_layer(
                                                    eps=eps, momentum=momentum,
                                                    affine=affine,
                                                    track_running_stats=track_running_stats,
-                                                   act_func=act_func + ('_0.01' if '_' in act_func else ''))
+                                                   act_func=(act_func + ('_0.01' if '_' in act_func else '')
+                                                             if act_func is not None else None))
     pytorch_batch_norm = getattr(nn, bn_name)(num_features=shape[1],
                                               eps=eps, momentum=momentum,
                                               affine=affine,

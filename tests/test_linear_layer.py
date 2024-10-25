@@ -34,7 +34,8 @@ def test_linear_layer(
     torch.manual_seed(0)
     attorch_linear = attorch.Linear(input_shape[-1], out_dim,
                                     bias=bias,
-                                    act_func=act_func + ('_0.01' if '_' in act_func else ''))
+                                    act_func=(act_func + ('_0.01' if '_' in act_func else '')
+                                              if act_func is not None else None))
 
     torch.manual_seed(0)
     pytorch_linear = nn.Linear(input_shape[-1], out_dim,

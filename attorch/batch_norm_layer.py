@@ -90,7 +90,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
             Batch-normalized input, potentially with fused activation and added residual.
         """
         param = None
-        if '_' in act_func:
+        if act_func is not None and '_' in act_func:
             comps = act_func.split('_')
             act_func = '_'.join(comps[:-1])
             param = float(comps[-1])
