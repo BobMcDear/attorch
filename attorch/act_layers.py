@@ -38,8 +38,8 @@ class ActFuncAutoGrad(torch.autograd.Function):
             input: Input to transform.
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
                 'leaky_relu_PARAM', where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
@@ -130,6 +130,22 @@ class Sigmoid(nn.Sigmoid):
 
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input, 'sigmoid', self.drop_p, self.training)
+
+
+class LogSigmoid(nn.LogSigmoid):
+    """
+    Applies the log of sigmoid to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, drop_p: float = 0.0) -> None:
+        super().__init__()
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'logsigmoid', self.drop_p, self.training)
 
 
 class Tanh(nn.Tanh):
@@ -250,6 +266,46 @@ class Hardsigmoid(nn.Hardsigmoid):
 
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input, 'hardsigmoid', self.drop_p, self.training)
+
+
+class Hardtanh(nn.Hardtanh):
+    """
+    Applies hard tanh to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        min_val: This argument is not supported.
+        max_val: This argument is not supported.
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        drop_p: Probability of dropping an element for dropout.
+
+    Raises:
+        RuntimeError: 1. Minimum value was not set to -1.
+                      2. Maximum value was not set to 1.
+    """
+    def __init__(
+        self,
+        min_val: float = -1.0,
+        max_val: float = 1.0,
+        inplace: bool = False,
+        drop_p: float = 0.0,
+        ) -> None:
+        if min_val != -1.0:
+            raise RuntimeError('Hard tanh only supports a minimum value of -1.')
+
+        if max_val != 1.0:
+            raise RuntimeError('Hard tanh only supports a maximum value of -1.')
+
+        super().__init__(inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place hard sigmoid currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'hardtanh', self.drop_p, self.training)
 
 
 class Hardswish(nn.Hardswish):

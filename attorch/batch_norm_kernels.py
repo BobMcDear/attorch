@@ -123,8 +123,8 @@ def batch_norm_forward_kernel(
         is_train: Flag indicating if the model is in training mode.
         add_pre_act: Flag for adding the residual to the pre-activation result.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         save_pre_act: Flag for saving the pre-activation input.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_SPATIAL: Block size across the spatial dimension.

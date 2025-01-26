@@ -80,8 +80,8 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 is_train is also True.
             pre_act_add: Optional residual added to the pre-activation result.
             act_func: Name of activation function to apply, with None for identity.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
                 'leaky_relu_PARAM', where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
@@ -258,8 +258,8 @@ class BatchNorm1d(nn.BatchNorm1d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
             'leaky_relu_PARAM', where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
@@ -311,8 +311,8 @@ class BatchNorm2d(nn.BatchNorm2d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
             'leaky_relu_PARAM', where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).

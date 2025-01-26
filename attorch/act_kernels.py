@@ -40,6 +40,34 @@ def sigmoid_grad(input):
 
 
 @triton.jit
+def logsigmoid(input):
+    """
+    Applies the log of sigmoid to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by the log of sigmoid.
+    """
+    return tl.log(sigmoid(input))
+
+
+@triton.jit
+def logsigmoid_grad(input):
+    """
+    Calculates the gradient of the log of sigmoid.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of the log of sigmoid.
+    """
+    return (1 / (1 + tl.exp(input)))
+
+
+@triton.jit
 def tanh(input):
     """
     Applies tanh to the input.
@@ -213,6 +241,34 @@ def hardsigmoid_grad(input):
 
 
 @triton.jit
+def hardtanh(input):
+    """
+    Applies hard tanh to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by hard tanh.
+    """
+    return tl.maximum(-1, tl.minimum(1, input))
+
+
+@triton.jit
+def hardtanh_grad(input):
+    """
+    Calculates the gradient of hard tanh.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of hard tanh.
+    """
+    return tl.where((-1 < input) & (input < 1), 1, 0)
+
+
+@triton.jit
 def hardswish(input):
     """
     Applies hard Swish to the input.
@@ -347,8 +403,8 @@ def apply_act_func(input, drop_p, seed, offset, param,
         offset: Offset to generate the dropout mask for if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -358,6 +414,10 @@ def apply_act_func(input, drop_p, seed, offset, param,
     if act_func == 'sigmoid':
         input = input.to(tl.float32)
         output = sigmoid(input)
+
+    if act_func == 'logsigmoid':
+        input = input.to(tl.float32)
+        output = logsigmoid(input)
 
     elif act_func == 'tanh':
         input = input.to(tl.float32)
@@ -379,6 +439,9 @@ def apply_act_func(input, drop_p, seed, offset, param,
 
     elif act_func == 'hardsigmoid':
         output = hardsigmoid(input)
+
+    elif act_func == 'hardtanh':
+        output = hardtanh(input)
 
     elif act_func == 'hardswish':
         output = hardswish(input)
@@ -415,8 +478,8 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         offset: Offset to generate the dropout mask for if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -425,6 +488,10 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
     if act_func == 'sigmoid':
         input = input.to(tl.float32)
         output = sigmoid_grad(input)
+
+    if act_func == 'logsigmoid':
+        input = input.to(tl.float32)
+        output = logsigmoid_grad(input)
 
     elif act_func == 'tanh':
         input = input.to(tl.float32)
@@ -446,6 +513,9 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
 
     elif act_func == 'hardsigmoid':
         output = hardsigmoid_grad(input)
+
+    elif act_func == 'hardtanh':
+        output = hardtanh_grad(input)
 
     elif act_func == 'hardswish':
         output = hardswish_grad(input)
@@ -491,8 +561,8 @@ def act_func_forward_kernel(
         seed: Seed for generating the dropout mask if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -534,8 +604,8 @@ def act_func_backward_kernel(
         seed: Seed for generating the dropout mask if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function whose gradient is calculated.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """

@@ -38,8 +38,8 @@ class GLUAutoGrad(torch.autograd.Function):
                 Can have arbitrary shape but dimension dim must be even.
             dim: Dimension over which to gate.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
                 'leaky_relu_PARAM', where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
@@ -118,8 +118,8 @@ class GLU(nn.GLU):
     Args:
         dim: Dimension over which to gate.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardswish', 'selu', 'mish', and
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
             'leaky_relu_PARAM', where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
