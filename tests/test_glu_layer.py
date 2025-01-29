@@ -10,8 +10,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 
 
 @pytest.mark.parametrize('shape', default_shapes(max_dim=3))
-@pytest.mark.parametrize('act_func', ['sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                                      'relu6', 'hardsigmoid', 'hardswish', 'selu',
+@pytest.mark.parametrize('act_func', ['sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                                      'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
                                       'mish', 'leaky_relu'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])

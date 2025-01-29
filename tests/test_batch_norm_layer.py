@@ -15,8 +15,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('affine', [False, True])
 @pytest.mark.parametrize('track_running_stats', [False, True])
 @pytest.mark.parametrize('add_pre_act', [False, True])
-@pytest.mark.parametrize('act_func', [None, 'sigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                                      'relu6', 'hardsigmoid', 'hardswish', 'selu',
+@pytest.mark.parametrize('act_func', [None, 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                                      'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
                                       'mish', 'leaky_relu'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
