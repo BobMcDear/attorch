@@ -81,8 +81,9 @@ class BatchNormAutoGrad(torch.autograd.Function):
             pre_act_add: Optional residual added to the pre-activation result.
             act_func: Name of activation function to apply, with None for identity.
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+                'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+                'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
 
@@ -259,8 +260,9 @@ class BatchNorm1d(nn.BatchNorm1d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+            'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
@@ -312,8 +314,9 @@ class BatchNorm2d(nn.BatchNorm2d):
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+            'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
         device: Device to use.

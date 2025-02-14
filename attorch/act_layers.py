@@ -39,8 +39,9 @@ class ActFuncAutoGrad(torch.autograd.Function):
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+                'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+                'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
             drop_p: Probability of dropping an element for dropout.
@@ -374,6 +375,54 @@ class Mish(nn.Mish):
         return ActFuncAutoGrad.apply(input, 'mish', self.drop_p, self.training)
 
 
+class Softplus(nn.Softplus):
+    """
+    Applies softplus to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, drop_p: float = 0.0) -> None:
+        super().__init__()
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'softplus', self.drop_p, self.training)
+
+
+class Softsign(nn.Softsign):
+    """
+    Applies softsign to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, drop_p: float = 0.0) -> None:
+        super().__init__()
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'softsign', self.drop_p, self.training)
+
+
+class Tanhshrink(nn.Tanhshrink):
+    """
+    Applies tanhshrink to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(self, drop_p: float = 0.0) -> None:
+        super().__init__()
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input, 'tanhshrink', self.drop_p, self.training)
+
+
 class LeakyReLU(nn.LeakyReLU):
     """
     Applies leaky ReLU to the input, optionally fusing dropout.
@@ -402,4 +451,64 @@ class LeakyReLU(nn.LeakyReLU):
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input,
                                      'leaky_relu_' + str(self.negative_slope),
+                                     self.drop_p, self.training)
+
+
+class ELU(nn.ELU):
+    """
+    Applies ELU to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        alpha: Alpha value.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(
+        self,
+        inplace: bool = False,
+        alpha: float = 1.0,
+        drop_p: float = 0.0,
+        ) -> None:
+        super().__init__(alpha, inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place ELU currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input,
+                                     'elu_' + str(self.alpha),
+                                     self.drop_p, self.training)
+
+
+class CELU(nn.CELU):
+    """
+    Applies CELU to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        inplace: This is a dummy argument and has no effects,
+            as in-place is currently not supported.
+        alpha: Alpha value.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(
+        self,
+        inplace: bool = False,
+        alpha: float = 1.0,
+        drop_p: float = 0.0,
+        ) -> None:
+        super().__init__(alpha, inplace=False)
+        self.drop_p = drop_p
+
+        if inplace is True:
+            warnings.warn('In-place CELU currently not supported; '
+                          'falling back to out-of-place.')
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input,
+                                     'celu_' + str(self.alpha),
                                      self.drop_p, self.training)

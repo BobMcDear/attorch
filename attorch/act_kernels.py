@@ -361,6 +361,91 @@ def mish_grad(input):
 
 
 @triton.jit
+def softplus(input):
+    """
+    Applies softplus to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by softplus.
+    """
+    return tl.log(1 + tl.exp(input))
+
+
+@triton.jit
+def softplus_grad(input):
+    """
+    Calculates the gradient of softplus.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of softplus.
+    """
+    return sigmoid(input)
+
+
+@triton.jit
+def softsign(input):
+    """
+    Applies softsign to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by softsign.
+    """
+    return input / (1 + tl.abs(input))
+
+
+@triton.jit
+def softsign_grad(input):
+    """
+    Calculates the gradient of softsign.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of softsign.
+    """
+    denom = 1 + tl.abs(input)
+    return 1 / (denom * denom)
+
+
+@triton.jit
+def tanhshrink(input):
+    """
+    Applies tanh shrink to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by tanh shrink.
+    """
+    return input - tanh(input)
+
+
+@triton.jit
+def tanhshrink_grad(input):
+    """
+    Calculates the gradient of tanh shrink.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of tanh shrink.
+    """
+    return 1 - tanh_grad(input)
+
+
+@triton.jit
 def leaky_relu(input, negative_slope):
     """
     Applies leaky ReLU to the input.
@@ -391,6 +476,66 @@ def leaky_relu_grad(input, negative_slope):
 
 
 @triton.jit
+def elu(input, alpha):
+    """
+    Applies ELU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        alpha: Alpha value.
+
+    Returns:
+        Input transformed by ELU.
+    """
+    return tl.where(input <= 0, alpha * (tl.exp(input) - 1), input)
+
+
+@triton.jit
+def elu_grad(input, alpha):
+    """
+    Calculates the gradient of ELU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        alpha: Alpha value.
+
+    Returns:
+        Gradient of ELU.
+    """
+    return tl.where(input <= 0, alpha * tl.exp(input), 1)
+
+
+@triton.jit
+def celu(input, alpha):
+    """
+    Applies CELU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        alpha: Alpha value.
+
+    Returns:
+        Input transformed by CELU.
+    """
+    return relu(input) + tl.minimum(0, alpha * (tl.exp(input / alpha) - 1))
+
+
+@triton.jit
+def celu_grad(input, alpha):
+    """
+    Calculates the gradient of CELU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        alpha: Alpha value.
+
+    Returns:
+        Gradient of CELU.
+    """
+    return tl.where(input <= 0, tl.exp(input / alpha), 1)
+
+
+@triton.jit
 def apply_act_func(input, drop_p, seed, offset, param,
                    act_func: tl.constexpr, dropout: tl.constexpr):
     """
@@ -404,7 +549,8 @@ def apply_act_func(input, drop_p, seed, offset, param,
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -454,8 +600,27 @@ def apply_act_func(input, drop_p, seed, offset, param,
         input = input.to(tl.float32)
         output = mish(input)
 
+    elif act_func == 'softplus':
+        input = input.to(tl.float32)
+        output = softplus(input)
+
+    elif act_func == 'softsign':
+        output = softsign(input)
+
+    elif act_func == 'tanhshrink':
+        input = input.to(tl.float32)
+        output = tanhshrink(input)
+
     elif act_func == 'leaky_relu':
         output = leaky_relu(input, param)
+
+    elif act_func == 'elu':
+        input = input.to(tl.float32)
+        output = elu(input, param)
+
+    elif act_func == 'celu':
+        input = input.to(tl.float32)
+        output = celu(input, param)
 
     if dropout:
         output = apply_dropout(output, drop_p, seed, offset)
@@ -477,9 +642,10 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         seed: Seed for generating the dropout mask if dropout is True.
         offset: Offset to generate the dropout mask for if dropout is True.
         param: Parameter in the case of parameterized activation functions.
-        act_func: Name of activation function whose gradient is calculated.
+        act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -528,8 +694,27 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         input = input.to(tl.float32)
         output = mish_grad(input)
 
+    elif act_func == 'softplus':
+        input = input.to(tl.float32)
+        output = softplus_grad(input)
+
+    elif act_func == 'softsign':
+        output = softsign_grad(input)
+
+    elif act_func == 'tanhshrink':
+        input = input.to(tl.float32)
+        output = tanhshrink_grad(input)
+
     elif act_func == 'leaky_relu':
         output = leaky_relu_grad(input, param)
+
+    elif act_func == 'elu':
+        input = input.to(tl.float32)
+        output = elu_grad(input, param)
+
+    elif act_func == 'celu':
+        input = input.to(tl.float32)
+        output = celu_grad(input, param)
 
     if dropout:
         output_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
@@ -562,7 +747,8 @@ def act_func_forward_kernel(
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -603,9 +789,10 @@ def act_func_backward_kernel(
         drop_p: Probability of dropping an element if dropout is True.
         seed: Seed for generating the dropout mask if dropout is True.
         param: Parameter in the case of parameterized activation functions.
-        act_func: Name of activation function whose gradient is calculated.
+        act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and 'leaky_relu'.
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """

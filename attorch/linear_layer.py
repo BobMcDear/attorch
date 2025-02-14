@@ -41,8 +41,9 @@ class LinearAutoGrad(torch.autograd.Function):
                 If provided, must be of shape [out_feat_dim].
             act_func: Name of activation function to apply, with None for identity.
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-                'leaky_relu_PARAM', where PARAM stands for the parameter in the
+                'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+                'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+                'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
 
@@ -176,8 +177,9 @@ class Linear(nn.Linear):
         bias: Flag for additive bias.
         act_func: Name of activation function to apply, with None for identity.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
-            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish', and
-            'leaky_relu_PARAM', where PARAM stands for the parameter in the
+            'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
+            'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
