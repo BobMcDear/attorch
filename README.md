@@ -24,19 +24,24 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.Conv1d```: 1D-convolves over the input using weights, optionally adding bias.
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
 * ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
+* ```attorch.ELU```: Applies ELU to the input, optionally fusing dropout.
 * ```attorch.Hardsigmoid```: Applies hard sigmoid to the input, optionally fusing dropout.
 * ```attorch.Hardswish```: Applies hard Swish to the input, optionally fusing dropout.
 * ```attorch.Hardtanh```: Applies hard tanh to the input, optionally fusing dropout.
 * ```attorch.LeakyReLU```: Applies leaky ReLU to the input, optionally fusing dropout.
 * ```attorch.LogSigmoid```: Applies the log of sigmoid to the input, optionally fusing dropout.
+* ```attorch.CELU```: Applies CELU to the input, optionally fusing dropout.
 * ```attorch.GELU```: Applies GELU to the input, optionally fusing dropout.
 * ```attorch.ReLU```: Applies ReLU to the input, optionally fusing dropout.
 * ```attorch.ReLU6```: Applies ReLU6 to the input, optionally fusing dropout.
 * ```attorch.SELU```: Applies SELU to the input, optionally fusing dropout.
 * ```attorch.SiLU```: Applies SiLU to the input, optionally fusing dropout.
 * ```attorch.Mish```: Applies Mish to the input, optionally fusing dropout.
+* ```attorch.Softplus```: Applies softplus to the input, optionally fusing dropout.
+* ```attorch.Softsign```: Applies softsign to the input, optionally fusing dropout.
 * ```attorch.Sigmoid```: Applies sigmoid to the input, optionally fusing dropout.
 * ```attorch.Tanh```: Applies tanh to the input, optionally fusing dropout.
+* ```attorch.Tanhshrink```: Applies tanh to the input, optionally fusing dropout.
 * ```attorch.GLU```: Applies the gated linear unit with an arbitrary activation function to the input.
 * ```attorch.LogSoftmax```: Normalizes the input using softmax and takes its log.
 * ```attorch.Softmax```: Normalizes the input using softmax.
