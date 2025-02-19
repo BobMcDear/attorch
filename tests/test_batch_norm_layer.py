@@ -17,7 +17,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('add_pre_act', [False, True])
 @pytest.mark.parametrize('act_func', [None, 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                                       'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
-                                      'mish', 'leaky_relu'])
+                                      'mish', 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_0.01',
+                                      'elu_1', 'celu_1'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_batch_norm_layer(
@@ -49,14 +50,13 @@ def test_batch_norm_layer(
                                                    eps=eps, momentum=momentum,
                                                    affine=affine,
                                                    track_running_stats=track_running_stats,
-                                                   act_func=(act_func + ('_0.01' if '_' in act_func else '')
-                                                             if act_func is not None else None))
+                                                   act_func=act_func)
     pytorch_batch_norm = getattr(nn, bn_name)(num_features=shape[1],
                                               eps=eps, momentum=momentum,
                                               affine=affine,
                                               track_running_stats=track_running_stats,
                                               device='cuda')
-    pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func)
+    pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func.rsplit('_', 1)[0])
 
     if affine:
         torch.manual_seed(0)

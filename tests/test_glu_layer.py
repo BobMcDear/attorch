@@ -12,7 +12,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('shape', default_shapes(max_dim=3))
 @pytest.mark.parametrize('act_func', ['sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                                       'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
-                                      'mish', 'leaky_relu'])
+                                      'mish', 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_0.01',
+                                      'elu_1', 'celu_1'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_glu_layer(
@@ -27,8 +28,8 @@ def test_glu_layer(
     attorch_input = create_input(shape, dtype=input_dtype)
     pytorch_input = create_input(shape, dtype=input_dtype)
 
-    attorch_glu = attorch.GLU(act_func=act_func + ('_0.01' if '_' in act_func else ''))
-    pytorch_glu = lambda input1, input2: input1 * getattr(F, act_func)(input2)
+    attorch_glu = attorch.GLU(act_func=act_func)
+    pytorch_glu = lambda input1, input2: input1 * getattr(F, act_func.rsplit('_', 1)[0])(input2)
 
     with autocast('cuda', enabled=amp):
         attorch_output = attorch_glu(attorch_input)

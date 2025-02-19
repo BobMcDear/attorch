@@ -14,7 +14,8 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('bias', [False, True])
 @pytest.mark.parametrize('act_func', [None, 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                                       'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
-                                      'mish', 'leaky_relu'])
+                                      'mish', 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_0.01',
+                                      'elu_1', 'celu_1'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_linear_layer(
@@ -34,13 +35,12 @@ def test_linear_layer(
     torch.manual_seed(0)
     attorch_linear = attorch.Linear(input_shape[-1], out_dim,
                                     bias=bias,
-                                    act_func=(act_func + ('_0.01' if '_' in act_func else '')
-                                              if act_func is not None else None))
+                                    act_func=act_func)
 
     torch.manual_seed(0)
     pytorch_linear = nn.Linear(input_shape[-1], out_dim,
                                bias=bias, device='cuda')
-    pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func)
+    pytorch_act = nn.Identity() if act_func is None else getattr(F, act_func.rsplit('_', 1)[0])
 
     with autocast('cuda', enabled=amp):
         attorch_output = attorch_linear(attorch_input)
