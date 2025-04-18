@@ -23,6 +23,7 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 
 * ```attorch.Conv1d```: 1D-convolves over the input using weights, optionally adding bias.
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
+* ```attorch.AvgPool2d```: Averages 2D windows of pixels in the input.
 * ```attorch.MultiheadAttention```: Applies multi-headed scaled dot-product attention to the inputs.
 * ```attorch.ELU```: Applies ELU to the input, optionally fusing dropout.
 * ```attorch.Hardsigmoid```: Applies hard sigmoid to the input, optionally fusing dropout.
