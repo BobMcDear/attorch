@@ -8,7 +8,7 @@ import attorch
 from .utils import assert_close, create_input, create_input_like, default_shapes
 
 
-@pytest.mark.parametrize('input_shape', default_shapes(min_dim=4, max_dim=4))
+@pytest.mark.parametrize('input_shape', default_shapes(min_dim=3, max_dim=4))
 @pytest.mark.parametrize('kernel_size', [2, 3, 4])
 @pytest.mark.parametrize('stride', [None, 1, 2])
 @pytest.mark.parametrize('padding', [0, 1, -1])
@@ -31,11 +31,9 @@ def test_pooling_layer(
     attorch_input = create_input(input_shape, dtype=input_dtype)
     pytorch_input = create_input(input_shape, dtype=input_dtype)
 
-    torch.manual_seed(0)
-    attorch_pool = attorch.AvgPool2d(kernel_size, stride, padding)
-
-    torch.manual_seed(0)
-    pytorch_pool = nn.AvgPool2d(kernel_size, stride, padding)
+    pooling_name = 'AvgPool2d' if len(input_shape) == 4 else 'AvgPool1d'
+    attorch_pool = getattr(attorch, pooling_name)(kernel_size, stride, padding)
+    pytorch_pool = getattr(nn, pooling_name)(kernel_size, stride, padding)
 
     with autocast('cuda', enabled=amp):
         attorch_output = attorch_pool(attorch_input)
