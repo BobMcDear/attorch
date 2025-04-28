@@ -83,7 +83,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-                'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
+                'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
 
@@ -262,7 +262,7 @@ class BatchNorm1d(nn.BatchNorm1d):
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-            'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
+            'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
         device: Device to use.
@@ -316,7 +316,7 @@ class BatchNorm2d(nn.BatchNorm2d):
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-            'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
+            'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
             case of parameterized activation functions (e.g., 'leaky_relu_0.01'
             for leaky ReLU with a negative slope of 0.01).
         device: Device to use.

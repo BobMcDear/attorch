@@ -41,7 +41,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-                'elu_PARAM', and 'celu_PARAM' where PARAM stands for the parameter in the
+                'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
                 case of parameterized activation functions (e.g., 'leaky_relu_0.01'
                 for leaky ReLU with a negative slope of 0.01).
             drop_p: Probability of dropping an element for dropout.
@@ -511,4 +511,27 @@ class CELU(nn.CELU):
     def forward(self, input: Tensor) -> Tensor:
         return ActFuncAutoGrad.apply(input,
                                      'celu_' + str(self.alpha),
+                                     self.drop_p, self.training)
+
+
+class Hardshrink(nn.Hardshrink):
+    """
+    Applies hard shrink to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        lambd: Lambda value.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(
+        self,
+        lambd: float = 0.5,
+        drop_p: float = 0.0,
+        ) -> None:
+        super().__init__(lambd)
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input,
+                                     'hardshrink_' + str(self.lambd),
                                      self.drop_p, self.training)

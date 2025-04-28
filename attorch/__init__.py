@@ -4,7 +4,7 @@ written in Python using OpenAI's Triton.
 """
 
 
-from .act_layers import CELU, ELU, GELU, Hardsigmoid, Hardswish, Hardtanh, LeakyReLU, \
+from .act_layers import CELU, ELU, GELU, Hardshrink, Hardsigmoid, Hardswish, Hardtanh, LeakyReLU, \
     LogSigmoid, Mish, ReLU, ReLU6, SELU, SiLU, Sigmoid, Softplus, Softsign, Tanh, Tanhshrink
 from .batch_norm_layer import BatchNorm1d, BatchNorm2d
 from .conv_layer import Conv1d, Conv2d

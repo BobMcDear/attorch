@@ -535,6 +535,37 @@ def celu_grad(input, alpha):
     return tl.where(input <= 0, tl.exp(input / alpha), 1)
 
 
+
+@triton.jit
+def hardshrink(input, lambd):
+    """
+    Applies hard shrink to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        lambd: Lambda value.
+
+    Returns:
+        Input transformed by hard shrink.
+    """
+    return tl.where(tl.abs(input) < lambd, 0, input)
+
+
+@triton.jit
+def hardshrink_grad(input, lambd):
+    """
+    Calculates the gradient of hard shrink.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+        lambd: Lambda value.
+
+    Returns:
+        Gradient of hard shrink.
+    """
+    return tl.where(tl.abs(input) < lambd, 0, 1)
+
+
 @triton.jit
 def apply_act_func(input, drop_p, seed, offset, param,
                    act_func: tl.constexpr, dropout: tl.constexpr):
@@ -550,7 +581,7 @@ def apply_act_func(input, drop_p, seed, offset, param,
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
-            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', and 'hardshrink'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -622,6 +653,9 @@ def apply_act_func(input, drop_p, seed, offset, param,
         input = input.to(tl.float32)
         output = celu(input, param)
 
+    elif act_func == 'hardshrink':
+        output = hardshrink(input, param)
+
     if dropout:
         output = apply_dropout(output, drop_p, seed, offset)
 
@@ -645,7 +679,7 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
-            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', and 'hardshrink'.
         dropout: Flag for performing dropout on the activation output.
 
     Returns:
@@ -716,6 +750,9 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         input = input.to(tl.float32)
         output = celu_grad(input, param)
 
+    elif act_func == 'hardshrink':
+        output = hardshrink_grad(input, param)
+
     if dropout:
         output_grad = apply_dropout_grad(output_grad, drop_p, seed, offset)
 
@@ -748,7 +785,7 @@ def act_func_forward_kernel(
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
-            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', and 'hardshrink'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
@@ -792,7 +829,7 @@ def act_func_backward_kernel(
         act_func: Name of activation function to apply.
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
-            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', and 'celu'.
+            'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', and 'hardshrink'.
         dropout: Flag for performing dropout on the activation output.
         BLOCK_SIZE: Block size.
     """
