@@ -186,8 +186,8 @@ def standardize(input, mean, inv_std, weight, bias):
 def calc_p_loss(input, target, size,
                 p_loss: tl.constexpr, reduction: tl.constexpr):
     """
-    Measures the L1 or squared L2 norm of the difference between the input
-    and target (i.e., mean absolute error or mean squared error).
+    Measures the smooth L1, L1, or squared L2 norm of the difference between the input
+    and target.
 
     Args:
         input: Input.
@@ -197,7 +197,7 @@ def calc_p_loss(input, target, size,
         size: Number of elements in the input and target.
             This value is used only if reduction is 'mean'.
         p_loss: p-norm used to compute the error.
-            Options are 1 for MAE and 2 for MSE.
+            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -210,7 +210,10 @@ def calc_p_loss(input, target, size,
 
     diff = input - target
 
-    if p_loss == 1:
+    if p_loss == 0:
+        error = tl.where(diff < 1, 0.5 * diff * diff, tl.abs(diff) - 0.5)
+
+    elif p_loss == 1:
         error = tl.abs(diff)
 
     elif p_loss == 2:

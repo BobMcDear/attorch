@@ -28,8 +28,8 @@ class PLossAutoGrad(torch.autograd.Function):
         reduction: str,
         ) -> Tensor:
         """
-        Measures the L1 or squared L2 norm of the difference between the input
-        and target (i.e., mean absolute error or mean squared error).
+        Measures the smooth L1, L1, or squared L2 norm of the difference between the input
+        and target.
 
         Args:
             ctx: Context for variable storage.
@@ -38,7 +38,7 @@ class PLossAutoGrad(torch.autograd.Function):
             target: Target.
                 Must be the same shape as input.
             p_loss: p-norm used to compute the error.
-                Options are 1 for MAE and 2 for MSE.
+                Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
             reduction: Reduction strategy for the output.
                 Options are 'none' for no reduction, 'mean' for averaging the error
                 across all entries, and 'sum' for summing the error across all entries.
@@ -118,7 +118,7 @@ class PLossAutoGrad(torch.autograd.Function):
 
 class L1Loss(nn.L1Loss):
     """
-    Measures the mean absolute error between the input and target.
+    Measures the L1 error (mean absolute error) between the input and target.
     See also base class.
 
     Args:
@@ -137,7 +137,7 @@ class L1Loss(nn.L1Loss):
 
 class MSELoss(nn.MSELoss):
     """
-    Measures the mean squared error between the input and target.
+    Measures the squared L2 error (mean squared error) between the input and target.
     See also base class.
 
     Args:
@@ -152,3 +152,38 @@ class MSELoss(nn.MSELoss):
     """
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return PLossAutoGrad.apply(input, target, 2, self.reduction)
+
+
+class SmoothL1Loss(nn.SmoothL1Loss):
+    """
+    Measures the smooth L1 error between the input and target.
+    See also base class.
+
+    Args:
+        reduction: Reduction strategy for the output.
+            Options are 'none' for no reduction, 'mean' for averaging the error
+            across all entries, and 'sum' for summing the error across all entries.
+            Providing size_average and reduce overrides this argument.
+        size_average: Flag for averaging instead of summing the error entries
+            when reduce is True.
+        reduce: Flag for averaging or summing all the error entries instead of
+            returning a loss per element.
+        beta: Beta value for the softening threshold. Only 1.0 is supported.
+
+    Raises:
+        RuntimeError: A beta other than 1.0 was passed.
+    """
+    def __init__(
+        self,
+        reduction: Optional[str] = 'mean',
+        size_average: Optional[bool] = None,
+        reduce: Optional[bool] = None,
+        beta: float = 1.0,
+        ):
+        if beta != 1.0:
+            raise RuntimeError('Smooth L1 only supports a beta threshold of 1.0.')
+
+        super().__init__(size_average, reduce, reduction, beta)
+
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return PLossAutoGrad.apply(input, target, 0, self.reduction)

@@ -20,8 +20,8 @@ def p_loss_forward_kernel(
     BLOCK_SIZE: tl.constexpr,
     ):
     """
-    Measures the L1 or squared L2 norm of the difference between the input
-    and target (i.e., mean absolute error or mean squared error).
+    Measures the smooth L1, L1, or squared L2 norm of the difference between the input
+    and target.
 
     Args:
         input_pointer: Pointer to the input.
@@ -33,7 +33,7 @@ def p_loss_forward_kernel(
             and otherwise of shape [size/BLOCK_SIZE].
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error.
-            Options are 1 for MAE and 2 for MSE.
+            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -51,7 +51,10 @@ def p_loss_forward_kernel(
     target = tl.load(target_pointer + offset, mask=mask).to(tl.float32)
     diff = input - target
 
-    if p_loss == 1:
+    if p_loss == 0:
+        error = tl.where(diff < 1, 0.5 * diff * diff, tl.abs(diff) - 0.5)
+
+    elif p_loss == 1:
         error = tl.abs(diff)
 
     elif p_loss == 2:
@@ -79,8 +82,7 @@ def p_loss_backward_kernel(
     BLOCK_SIZE: tl.constexpr,
     ):
     """
-    Calculates the input gradient of the mean absolute error or
-    mean squared error.
+    Calculates the input gradient of the smooth L1, L1, or L2 norm.
 
     Args:
         output_grad_pointer: Pointer to the error's output gradients.
@@ -95,7 +97,7 @@ def p_loss_backward_kernel(
             The container must be of shape [size].
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error whose gradient is calculated.
-            Options are 1 for MAE and 2 for MSE.
+            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
         reduction: Reduction strategy for the output whose gradient is calculated.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -113,13 +115,17 @@ def p_loss_backward_kernel(
 
     input = tl.load(input_pointer + offset, mask=mask).to(tl.float32)
     target = tl.load(target_pointer + offset, mask=mask).to(tl.float32)
+    diff = input - target
     output_grad = tl.load(output_grad_pointer, mask=output_grad_mask).to(tl.float32)
 
-    if p_loss == 1:
-        input_grad = tl.where(target <= input, 1, -1)
+    if p_loss == 0:
+        input_grad = tl.where(diff < 1, diff, tl.where(0 <= diff, 1, -1))
+
+    elif p_loss == 1:
+        input_grad = tl.where(0 <= diff, 1, -1)
 
     elif p_loss == 2:
-        input_grad = 2 * (input - target)
+        input_grad = 2 * diff
 
     if reduction == 'mean':
         input_grad /= size
