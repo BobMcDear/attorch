@@ -55,10 +55,11 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.RMSNorm```: Root-mean-square-normalizes the input.
 * ```attorch.Linear```: Linearly transforms the input using weights, optionally adding bias and fusing an activation function.
 * ```attorch.Dropout```: Randomly zeroes elements in the input during training.
-* ```attorch.L1Loss```: Measures the mean absolute error between the input and target.
-* ```attorch.MSELoss```: Measures the mean squared error between the input and target.
+* ```attorch.L1Loss```: Measures the L1 error (mean absolute error) between the input and target.
+* ```attorch.MSELoss```: Measures the squared L2 error (mean squared error) between the input and target.
 * ```attorch.CrossEntropyLoss```: Measures the mean cross entropy loss between the input and target, with optional reweighing of each class.
 * ```attorch.NLLLoss```: Measures the negative log likelihood loss between the input and target, with optional reweighing of each class.
+* ```attorch.SmoothL1Loss```: Measures the smooth L1 error between the input and target.
 
 Unless otherwise noted in their docstrings, the aforementioned layers behave identically to their PyTorch equivalents.
 
