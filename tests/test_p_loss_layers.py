@@ -9,7 +9,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 
 
 @pytest.mark.parametrize('shape', default_shapes())
-@pytest.mark.parametrize('p_loss', ['L1Loss', 'MSELoss'])
+@pytest.mark.parametrize('p_loss', ['SmoothL1Loss', 'L1Loss', 'MSELoss'])
 @pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
