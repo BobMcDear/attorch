@@ -26,6 +26,7 @@ class PLossAutoGrad(torch.autograd.Function):
         target: Tensor,
         p_loss: int,
         reduction: str,
+        param: float = 1.0,
         ) -> Tensor:
         """
         Measures the smooth L1, L1, or squared L2 norm of the difference between the input
@@ -42,6 +43,7 @@ class PLossAutoGrad(torch.autograd.Function):
             reduction: Reduction strategy for the output.
                 Options are 'none' for no reduction, 'mean' for averaging the error
                 across all entries, and 'sum' for summing the error across all entries.
+            param: Parameter of loss function (i.e., beta for smooth L1).
 
         Returns:
             Error.
@@ -53,6 +55,7 @@ class PLossAutoGrad(torch.autograd.Function):
 
         ctx.p_loss = p_loss
         ctx.reduction = reduction
+        ctx.param = param
         ctx.output_dtype = output_dtype
         if input.requires_grad or target.requires_grad:
             ctx.save_for_backward(input, target)
@@ -68,7 +71,7 @@ class PLossAutoGrad(torch.autograd.Function):
         # BLOCK_SIZE elements.
         grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         p_loss_forward_kernel[grid](flattened_input, flattened_target, output,
-                                    size, p_loss=p_loss, reduction=reduction)
+                                    param, size, p_loss=p_loss, reduction=reduction)
 
         if reduction != 'none':
             BLOCK_SIZE = p_loss_forward_kernel.best_config.kwargs['BLOCK_SIZE']
@@ -108,7 +111,7 @@ class PLossAutoGrad(torch.autograd.Function):
         # BLOCK_SIZE elements.
         grid = lambda META: (cdiv(size, META['BLOCK_SIZE']),)
         p_loss_backward_kernel[grid](output_grad, flattened_input, flattened_target,
-                                     input_grad, target_grad, size,
+                                     input_grad, target_grad, ctx.param, size,
                                      p_loss=ctx.p_loss, reduction=ctx.reduction)
 
         # Pads output with None because a gradient is necessary for
@@ -168,22 +171,7 @@ class SmoothL1Loss(nn.SmoothL1Loss):
             when reduce is True.
         reduce: Flag for averaging or summing all the error entries instead of
             returning a loss per element.
-        beta: Beta value for the softening threshold. Only 1.0 is supported.
-
-    Raises:
-        RuntimeError: A beta other than 1.0 was passed.
+        beta: Beta value for the softening threshold.
     """
-    def __init__(
-        self,
-        reduction: Optional[str] = 'mean',
-        size_average: Optional[bool] = None,
-        reduce: Optional[bool] = None,
-        beta: float = 1.0,
-        ):
-        if beta != 1.0:
-            raise RuntimeError('Smooth L1 only supports a beta threshold of 1.0.')
-
-        super().__init__(size_average, reduce, reduction, beta)
-
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        return PLossAutoGrad.apply(input, target, 0, self.reduction)
+        return PLossAutoGrad.apply(input, target, 0, self.reduction, self.beta)

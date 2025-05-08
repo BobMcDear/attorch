@@ -16,7 +16,7 @@ from .utils import element_wise_kernel_configs
 @triton.jit
 def p_loss_forward_kernel(
     input_pointer, target_pointer, output_pointer,
-    size, p_loss: tl.constexpr, reduction: tl.constexpr,
+    param, size, p_loss: tl.constexpr, reduction: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
     """
@@ -31,6 +31,7 @@ def p_loss_forward_kernel(
         output_pointer: Pointer to a container the error is written to.
             The container must be of shape [size] if reduction is 'none',
             and otherwise of shape [size/BLOCK_SIZE].
+        param: Parameter of loss function (i.e., beta for smooth L1).
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error.
             Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
@@ -52,7 +53,7 @@ def p_loss_forward_kernel(
     diff = input - target
 
     if p_loss == 0:
-        error = tl.where(diff < 1, 0.5 * diff * diff, tl.abs(diff) - 0.5)
+        error = tl.where(diff < param, 0.5 * diff * diff / param, tl.abs(diff) - 0.5 * param)
 
     elif p_loss == 1:
         error = tl.abs(diff)
@@ -77,7 +78,7 @@ def p_loss_forward_kernel(
 @triton.jit
 def p_loss_backward_kernel(
     output_grad_pointer, input_pointer, target_pointer,
-    input_grad_pointer, target_grad_pointer, size,
+    input_grad_pointer, target_grad_pointer, param, size,
     p_loss: tl.constexpr, reduction: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     ):
@@ -95,6 +96,7 @@ def p_loss_backward_kernel(
             The container must be of shape [size].
         target_grad_pointer: Pointer to a container the target's gradients are written to.
             The container must be of shape [size].
+        param: Parameter of loss function (i.e., beta for smooth L1).
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error whose gradient is calculated.
             Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
@@ -119,7 +121,7 @@ def p_loss_backward_kernel(
     output_grad = tl.load(output_grad_pointer, mask=output_grad_mask).to(tl.float32)
 
     if p_loss == 0:
-        input_grad = tl.where(diff < 1, diff, tl.where(0 <= diff, 1, -1))
+        input_grad = tl.where(diff < param, diff / param, tl.where(0 <= diff, 1, -1))
 
     elif p_loss == 1:
         input_grad = tl.where(0 <= diff, 1, -1)

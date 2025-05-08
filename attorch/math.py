@@ -183,7 +183,7 @@ def standardize(input, mean, inv_std, weight, bias):
 
 
 @triton.jit
-def calc_p_loss(input, target, size,
+def calc_p_loss(input, target, param, size,
                 p_loss: tl.constexpr, reduction: tl.constexpr):
     """
     Measures the smooth L1, L1, or squared L2 norm of the difference between the input
@@ -194,6 +194,7 @@ def calc_p_loss(input, target, size,
             The input must be of shape [BLOCK_SIZE].
         target: Target.
             The target must be of shape [BLOCK_SIZE].
+        param: Parameter of loss function (i.e., beta for smooth L1).
         size: Number of elements in the input and target.
             This value is used only if reduction is 'mean'.
         p_loss: p-norm used to compute the error.
@@ -211,7 +212,7 @@ def calc_p_loss(input, target, size,
     diff = input - target
 
     if p_loss == 0:
-        error = tl.where(diff < 1, 0.5 * diff * diff, tl.abs(diff) - 0.5)
+        error = tl.where(diff < param, 0.5 * diff * diff / param, tl.abs(diff) - 0.5 * param)
 
     elif p_loss == 1:
         error = tl.abs(diff)
