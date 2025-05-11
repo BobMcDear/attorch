@@ -20,8 +20,8 @@ def p_loss_forward_kernel(
     BLOCK_SIZE: tl.constexpr,
     ):
     """
-    Measures the smooth L1, L1, or squared L2 norm of the difference between the input
-    and target.
+    Measures the smooth L1, L1, squared L2, or Huber loss of the difference
+    between the input and target.
 
     Args:
         input_pointer: Pointer to the input.
@@ -31,10 +31,10 @@ def p_loss_forward_kernel(
         output_pointer: Pointer to a container the error is written to.
             The container must be of shape [size] if reduction is 'none',
             and otherwise of shape [size/BLOCK_SIZE].
-        param: Parameter of loss function (i.e., beta for smooth L1).
+        param: Parameter of loss function (i.e., beta or delta for smooth L1 and Huber).
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error.
-            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
+            Options are 0 for smooth L1, 1 for L1, 2 for squared L2, and 3 for Huber loss.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -61,6 +61,9 @@ def p_loss_forward_kernel(
     elif p_loss == 2:
         error = diff * diff
 
+    elif p_loss == 3:
+        error = tl.where(diff < param, 0.5 * diff * diff, param * (tl.abs(diff) - 0.5 * param))
+
     if reduction == 'none':
         tl.store(output_pointer + offset, error, mask=mask)
 
@@ -83,7 +86,7 @@ def p_loss_backward_kernel(
     BLOCK_SIZE: tl.constexpr,
     ):
     """
-    Calculates the input gradient of the smooth L1, L1, or L2 norm.
+    Calculates the input gradient of the smooth L1 norm, L1 norm, L2 norm, or Huber loss.
 
     Args:
         output_grad_pointer: Pointer to the error's output gradients.
@@ -96,10 +99,10 @@ def p_loss_backward_kernel(
             The container must be of shape [size].
         target_grad_pointer: Pointer to a container the target's gradients are written to.
             The container must be of shape [size].
-        param: Parameter of loss function (i.e., beta for smooth L1).
+        param: Parameter of loss function (i.e., beta or delta for smooth L1 and Huber).
         size: Number of elements in the input and target.
         p_loss: p-norm used to compute the error whose gradient is calculated.
-            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
+            Options are 0 for smooth L1, 1 for L1, 2 for squared L2, and 3 for Huber loss.
         reduction: Reduction strategy for the output whose gradient is calculated.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -128,6 +131,9 @@ def p_loss_backward_kernel(
 
     elif p_loss == 2:
         input_grad = 2 * diff
+
+    elif p_loss == 3:
+        input_grad = tl.where(diff < param, diff, param * tl.where(0 <= diff, 1, -1))
 
     if reduction == 'mean':
         input_grad /= size

@@ -29,8 +29,8 @@ class PLossAutoGrad(torch.autograd.Function):
         param: float = 1.0,
         ) -> Tensor:
         """
-        Measures the smooth L1, L1, or squared L2 norm of the difference between the input
-        and target.
+        Measures the smooth L1, L1, squared L2, or Huber loss of the difference
+        between the input and target.
 
         Args:
             ctx: Context for variable storage.
@@ -39,11 +39,11 @@ class PLossAutoGrad(torch.autograd.Function):
             target: Target.
                 Must be the same shape as input.
             p_loss: p-norm used to compute the error.
-                Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
+                Options are 0 for smooth L1, 1 for L1, 2 for squared L2, and 3 for Huber loss.
             reduction: Reduction strategy for the output.
                 Options are 'none' for no reduction, 'mean' for averaging the error
                 across all entries, and 'sum' for summing the error across all entries.
-            param: Parameter of loss function (i.e., beta for smooth L1).
+            param: Parameter of loss function (i.e., beta or delta for smooth L1 and Huber).
 
         Returns:
             Error.
@@ -175,3 +175,18 @@ class SmoothL1Loss(nn.SmoothL1Loss):
     """
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return PLossAutoGrad.apply(input, target, 0, self.reduction, self.beta)
+
+
+class HuberLoss(nn.HuberLoss):
+    """
+    Measures the Huber loss between the input and target.
+    See also base class.
+
+    Args:
+        reduction: Reduction strategy for the output.
+            Options are 'none' for no reduction, 'mean' for averaging the error
+            across all entries, and 'sum' for summing the error across all entries.
+        beta: Beta value for the softening threshold.
+    """
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return PLossAutoGrad.apply(input, target, 3, self.reduction, self.delta)
