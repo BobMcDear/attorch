@@ -186,19 +186,19 @@ def standardize(input, mean, inv_std, weight, bias):
 def calc_p_loss(input, target, param, size,
                 p_loss: tl.constexpr, reduction: tl.constexpr):
     """
-    Measures the smooth L1, L1, or squared L2 norm of the difference between the input
-    and target.
+    Measures the smooth L1, L1, squared L2, or Huber loss of the difference
+    between the input and target.
 
     Args:
         input: Input.
             The input must be of shape [BLOCK_SIZE].
         target: Target.
             The target must be of shape [BLOCK_SIZE].
-        param: Parameter of loss function (i.e., beta for smooth L1).
+        param: Parameter of loss function (i.e., beta or delta for smooth L1 and Huber).
         size: Number of elements in the input and target.
             This value is used only if reduction is 'mean'.
         p_loss: p-norm used to compute the error.
-            Options are 0 for smooth L1, 1 for L1, and 2 for squared L2.
+            Options are 0 for smooth L1, 1 for L1, 2 for squared L2, and 3 for Huber loss.
         reduction: Reduction strategy for the output.
             Options are 'none' for no reduction, 'mean' for averaging the error
             across all entries, and 'sum' for summing the error across all entries.
@@ -219,6 +219,9 @@ def calc_p_loss(input, target, param, size,
 
     elif p_loss == 2:
         error = diff * diff
+
+    elif p_loss == 3:
+        error = tl.where(diff < param, 0.5 * diff * diff, param * (tl.abs(diff) - 0.5 * param))
 
     if reduction == 'none':
         output = error
