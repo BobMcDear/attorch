@@ -5,7 +5,7 @@ written in Python using OpenAI's Triton.
 
 
 from .act_layers import CELU, ELU, GELU, Hardshrink, Hardsigmoid, Hardswish, Hardtanh, LeakyReLU, \
-    LogSigmoid, Mish, ReLU, ReLU6, SELU, SiLU, Sigmoid, Softplus, Softsign, Tanh, Tanhshrink
+    LogSigmoid, Mish, ReLU, ReLU6, SELU, SiLU, Sigmoid, Softplus, Softshrink, Softsign, Tanh, Tanhshrink
 from .batch_norm_layer import BatchNorm1d, BatchNorm2d
 from .conv_layer import Conv1d, Conv2d
 from .cross_entropy_loss_layer import CrossEntropyLoss

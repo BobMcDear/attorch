@@ -83,9 +83,10 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-                'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
-                case of parameterized activation functions (e.g., 'leaky_relu_0.01'
-                for leaky ReLU with a negative slope of 0.01).
+                'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
+                where PARAM stands for the parameter in the case of parameterized
+                activation functions (e.g., 'leaky_relu_0.01' for leaky ReLU with a
+                negative slope of 0.01).
 
         Returns:
             Batch-normalized input, potentially with fused activation and added residual.
@@ -262,9 +263,10 @@ class BatchNorm1d(nn.BatchNorm1d):
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-            'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
-            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
-            for leaky ReLU with a negative slope of 0.01).
+            'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
+            where PARAM stands for the parameter in the case of parameterized
+            activation functions (e.g., 'leaky_relu_0.01' for leaky ReLU with a
+            negative slope of 0.01).
         device: Device to use.
         dtype: Dtype of layer.
     """
@@ -316,9 +318,10 @@ class BatchNorm2d(nn.BatchNorm2d):
             Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
-            'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
-            case of parameterized activation functions (e.g., 'leaky_relu_0.01'
-            for leaky ReLU with a negative slope of 0.01).
+            'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
+            where PARAM stands for the parameter in the case of parameterized
+            activation functions (e.g., 'leaky_relu_0.01' for leaky ReLU with a
+            negative slope of 0.01).
         device: Device to use.
         dtype: Dtype of layer.
     """

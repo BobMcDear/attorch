@@ -535,3 +535,26 @@ class Hardshrink(nn.Hardshrink):
         return ActFuncAutoGrad.apply(input,
                                      'hardshrink_' + str(self.lambd),
                                      self.drop_p, self.training)
+
+
+class Softshrink(nn.Softshrink):
+    """
+    Applies softshrink to the input, optionally fusing dropout.
+    See also base class.
+
+    Args:
+        lambd: Lambda value.
+        drop_p: Probability of dropping an element for dropout.
+    """
+    def __init__(
+        self,
+        lambd: float = 0.5,
+        drop_p: float = 0.0,
+        ) -> None:
+        super().__init__(lambd)
+        self.drop_p = drop_p
+
+    def forward(self, input: Tensor) -> Tensor:
+        return ActFuncAutoGrad.apply(input,
+                                     'softshrink_' + str(self.lambd),
+                                     self.drop_p, self.training)
