@@ -18,7 +18,7 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 @pytest.mark.parametrize('act_func', [None, 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
                                       'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu',
                                       'mish', 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_0.01',
-                                      'elu_1', 'celu_1', 'hardshrink_0.5'])
+                                      'elu_1', 'celu_1', 'hardshrink_0.5', 'softshrink_0.5'])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_batch_norm_layer(
