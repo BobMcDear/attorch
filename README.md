@@ -41,6 +41,7 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.SiLU```: Applies SiLU to the input, optionally fusing dropout.
 * ```attorch.Mish```: Applies Mish to the input, optionally fusing dropout.
 * ```attorch.Softplus```: Applies softplus to the input, optionally fusing dropout.
+* ```attorch.Softshrink```: Applies softshrink to the input, optionally fusing dropout.
 * ```attorch.Softsign```: Applies softsign to the input, optionally fusing dropout.
 * ```attorch.Sigmoid```: Applies sigmoid to the input, optionally fusing dropout.
 * ```attorch.Tanh```: Applies tanh to the input, optionally fusing dropout.
