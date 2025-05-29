@@ -136,7 +136,12 @@ class GPT2(nn.Module):
                 if return_loss else output)
 
 
-def gpt2(use_attorch: bool, vocab_size: int, max_seq_len: 512) -> GPT2:
+def gpt2(
+    use_attorch: bool,
+    vocab_size: int,
+    max_seq_len: 512,
+    downsize: int = 1,
+    ) -> GPT2:
     """
     Returns a GPT2 model with optional cross entropy loss.
 
@@ -144,7 +149,9 @@ def gpt2(use_attorch: bool, vocab_size: int, max_seq_len: 512) -> GPT2:
         use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
         vocab_size: Vocabulary size.
         max_seq_len: Maximum sequence length of the incoming inputs.
+        downsize: The depth and width of the model are calculated by dividing
+            GPT2's original depth and width by this factor.
     """
     return GPT2(use_attorch, vocab_size=vocab_size,
-                depth=12, dim=768, num_heads=12,
+                depth=12 // downsize, dim=768 // downsize, num_heads=12 // downsize,
                 max_seq_len=max_seq_len)

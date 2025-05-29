@@ -169,6 +169,10 @@ if __name__ == '__main__':
                         default='gpt2',
                         choices=['gpt2'],
                         help='Name of language model to train')
+    parser.add_argument('--downsize',
+                        type=int,
+                        default=1,
+                        help='The depth and width of the model are calculated by dividing GPT2\'s original depth and width by this factor.')
     parser.add_argument('--epochs',
                         type=int,
                         default=10,
@@ -188,11 +192,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print('attorch run:')
-    main(partial(locals()[args.model], use_attorch=True),
+    main(partial(locals()[args.model], use_attorch=True, downsize=args.downsize),
          epochs=args.epochs, batch_size=args.batch_size,
          seq_len=args.seq_len, num_workers=args.num_workers)
 
     print('PyTorch run:')
-    main(partial(locals()[args.model], use_attorch=False),
+    main(partial(locals()[args.model], use_attorch=False, downsize=args.downsize),
          epochs=args.epochs, batch_size=args.batch_size,
          seq_len=args.seq_len, num_workers=args.num_workers)
