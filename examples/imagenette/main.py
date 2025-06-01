@@ -48,6 +48,7 @@ def create_dls(
     std = [0.229, 0.224, 0.225]
 
     train_transform = T.Compose([T.RandomResizedCrop(image_size),
+                                 T.RandomHorizontalFlip(),
                                  T.ToTensor(),
                                  T.Normalize(mean=mean, std=std)])
     valid_transform = T.Compose([T.CenterCrop(center_crop_size),
