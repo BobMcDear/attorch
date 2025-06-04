@@ -17,8 +17,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms as T
 from torchvision.datasets import Imagenette
 
-from .convnext import convnext_tiny, convnext_small, convnext_base, \
-    convnext_large, convnext_xlarge
+from .convnext import convnext_atto, convnext_femto, convnext_pico, convnext_nano, \
+    convnext_tiny, convnext_small, convnext_base, convnext_large, convnext_xlarge
 from .resnet import resnet50, resnet101, resnet152
 from .vit import vit_tiny_patch16, vit_small_patch32, vit_small_patch16, vit_small_patch8, \
     vit_base_patch32, vit_base_patch16, vit_base_patch8, \
@@ -186,6 +186,8 @@ if __name__ == '__main__':
                         type=str,
                         default='resnet101',
                         choices=['resnet50', 'resnet101', 'resnet152',
+                                 'convnext_atto', 'convnext_femto',
+                                 'convnext_pico', 'convnext_nano',
                                  'convnext_tiny', 'convnext_small',
                                  'convnext_base', 'convnext_large',
                                  'convnext_xlarge',

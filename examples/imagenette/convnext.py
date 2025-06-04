@@ -214,6 +214,54 @@ class ConvNeXt(nn.Module):
         return output if target is None else self.loss_func(output, target)
 
 
+def convnext_atto(use_attorch: bool, num_classes: int = 1000) -> ConvNeXt:
+    """
+    Returns a ConvNeXt-Atto classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ConvNeXt(use_attorch, depths=(2, 2, 6, 2), dims=(40, 80, 160, 320),
+                    num_classes=num_classes)
+
+
+def convnext_femto(use_attorch: bool, num_classes: int = 1000) -> ConvNeXt:
+    """
+    Returns a ConvNeXt-Femto classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ConvNeXt(use_attorch, depths=(2, 2, 6, 2), dims=(48, 96, 192, 384),
+                    num_classes=num_classes)
+
+
+def convnext_pico(use_attorch: bool, num_classes: int = 1000) -> ConvNeXt:
+    """
+    Returns a ConvNeXt-Pico classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ConvNeXt(use_attorch, depths=(2, 2, 6, 2), dims=(64, 128, 256, 512),
+                    num_classes=num_classes)
+
+
+def convnext_nano(use_attorch: bool, num_classes: int = 1000) -> ConvNeXt:
+    """
+    Returns a ConvNeXt-Nano classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ConvNeXt(use_attorch, depths=(2, 2, 8, 2), dims=(80, 160, 320, 640),
+                    num_classes=num_classes)
+
+
 def convnext_tiny(use_attorch: bool, num_classes: int = 1000) -> ConvNeXt:
     """
     Returns a ConvNeXt-Tiny classifier with optional cross entropy loss.
