@@ -189,6 +189,28 @@ class ResNet(nn.Module):
         return output if target is None else self.loss_func(output, target)
 
 
+def resnet14(use_attorch: bool, num_classes: int = 1000) -> ResNet:
+    """
+    Returns a ResNet-14 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ResNet(use_attorch, depths=(1, 1, 1, 1), num_classes=num_classes)
+
+
+def resnet26(use_attorch: bool, num_classes: int = 1000) -> ResNet:
+    """
+    Returns a ResNet-26 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ResNet(use_attorch, depths=(2, 2, 2, 2), num_classes=num_classes)
+
+
 def resnet50(use_attorch: bool, num_classes: int = 1000) -> ResNet:
     """
     Returns a ResNet-50 classifier with optional cross entropy loss.

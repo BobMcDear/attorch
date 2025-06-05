@@ -19,7 +19,7 @@ from torchvision.datasets import Imagenette
 
 from .convnext import convnext_atto, convnext_femto, convnext_pico, convnext_nano, \
     convnext_tiny, convnext_small, convnext_base, convnext_large, convnext_xlarge
-from .resnet import resnet50, resnet101, resnet152
+from .resnet import resnet14, resnet26, resnet50, resnet101, resnet152
 from .vit import vit_tiny_patch16, vit_small_patch32, vit_small_patch16, vit_small_patch8, \
     vit_base_patch32, vit_base_patch16, vit_base_patch8, \
     vit_large_patch32, vit_large_patch16, vit_large_patch14
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     parser.add_argument('--model',
                         type=str,
                         default='resnet101',
-                        choices=['resnet50', 'resnet101', 'resnet152',
+                        choices=['resnet14', 'resnet26', 'resnet50', 'resnet101', 'resnet152',
                                  'convnext_atto', 'convnext_femto',
                                  'convnext_pico', 'convnext_nano',
                                  'convnext_tiny', 'convnext_small',
