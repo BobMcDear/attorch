@@ -48,10 +48,10 @@ def create_dls(
     dataset.set_format('torch')
 
     train_dl = DataLoader(dataset=dataset['train'], batch_size=batch_size,
-                          shuffle=True, num_workers=num_workers,
+                          shuffle=True, num_workers=num_workers, pin_memory=True,
                           drop_last=True)
     valid_dl = DataLoader(dataset=dataset['validation'], batch_size=batch_size,
-                          shuffle=False, num_workers=num_workers,
+                          shuffle=False, num_workers=num_workers, pin_memory=True,
                           drop_last=True)
 
     return train_dl, valid_dl

@@ -62,10 +62,10 @@ def create_dls(
                                transform=valid_transform)
 
     train_dl = DataLoader(dataset=train_dataset, batch_size=batch_size,
-                          shuffle=True, num_workers=num_workers,
+                          shuffle=True, num_workers=num_workers, pin_memory=True,
                           drop_last=True)
     valid_dl = DataLoader(dataset=valid_dataset, batch_size=batch_size,
-                          shuffle=False, num_workers=num_workers,
+                          shuffle=False, num_workers=num_workers, pin_memory=True,
                           drop_last=True)
 
     return train_dl, valid_dl
