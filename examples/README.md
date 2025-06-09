@@ -6,3 +6,4 @@ The examples are listed below.
 
 * [Imagenette image classification](https://github.com/bobmcdear/attorch/examples/imagenette)
 * [WikiText-2 language modelling](https://github.com/bobmcdear/attorch/examples/wikitext-2)
+* [MNIST classification](https://github.com/bobmcdear/attorch/examples/mnist)
