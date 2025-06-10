@@ -189,6 +189,24 @@ def vit_tiny_patch16(
                num_classes=num_classes)
 
 
+def vit_xsmall_patch16(
+    use_attorch: bool,
+    image_size: int = 224,
+    num_classes: int = 1000,
+    ) -> ViT:
+    """
+    Returns a ViT-XSmall-Patch16 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        image_size: Height and width of input images.
+        num_classes: Number of output classes.
+    """
+    return ViT(use_attorch, depth=10, dim=256, num_heads=4,
+               image_size=image_size, patch_size=16,
+               num_classes=num_classes)
+
+
 def vit_small_patch32(
     use_attorch: bool,
     image_size: int = 224,
@@ -240,6 +258,42 @@ def vit_small_patch8(
     """
     return ViT(use_attorch, depth=12, dim=384, num_heads=6,
                image_size=image_size, patch_size=8,
+               num_classes=num_classes)
+
+
+def vit_medium_patch32(
+    use_attorch: bool,
+    image_size: int = 224,
+    num_classes: int = 1000,
+    ) -> ViT:
+    """
+    Returns a ViT-Medium-Patch32 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        image_size: Height and width of input images.
+        num_classes: Number of output classes.
+    """
+    return ViT(use_attorch, depth=12, dim=512, num_heads=8,
+               image_size=image_size, patch_size=32,
+               num_classes=num_classes)
+
+
+def vit_medium_patch16(
+    use_attorch: bool,
+    image_size: int = 224,
+    num_classes: int = 1000,
+    ) -> ViT:
+    """
+    Returns a ViT-Medium-Patch16 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        image_size: Height and width of input images.
+        num_classes: Number of output classes.
+    """
+    return ViT(use_attorch, depth=12, dim=512, num_heads=8,
+               image_size=image_size, patch_size=16,
                num_classes=num_classes)
 
 
