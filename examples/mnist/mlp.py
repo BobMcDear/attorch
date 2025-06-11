@@ -45,7 +45,6 @@ class MLP(nn.Module):
         self.layers = nn.Sequential(*layers)
         self.loss_func = backend.CrossEntropyLoss()
 
-
     def forward(self, input: Tensor, target: Optional[Tensor] = None) -> Tensor:
         output = self.layers(input.flatten(start_dim=1))
         return output if target is None else self.loss_func(output, target)
