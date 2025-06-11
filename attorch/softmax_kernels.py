@@ -45,7 +45,7 @@ def softmax_forward_kernel(
     batch_dim, feat_dim,
     input_batch_stride, input_feat_stride,
     output_batch_stride, output_feat_stride,
-    log: tl.constexpr,
+    neg: tl.constexpr, log: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_FEAT: tl.constexpr,
     ):
     """
@@ -66,7 +66,8 @@ def softmax_forward_kernel(
             output container's batch dimension.
         output_feat_stride: Stride necessary to jump one element along the
             output container's feature dimension.
-        log: Flag for indicating if the log of softmax should be taken.
+        neg: Flag indicating if the input should be negated to get softmin.
+        log: Flag indicating if the log of softmax should be taken.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_FEAT: Block size across the feature dimension.
     """
@@ -85,7 +86,10 @@ def softmax_forward_kernel(
                        output_feat_stride * feat_offset[None, :])
 
     input = tl.load(input_pointer, mask=batch_mask[:, None] & feat_mask[None, :],
-                    other=-float('inf')).to(tl.float32)
+                    other=float('inf') if neg else -float('inf')).to(tl.float32)
+    if neg:
+        input = -input
+
     input -= tl.max(input, axis=1)[:, None]
     numerator = tl.exp(input)
     denominator = tl.sum(numerator, axis=1)[:, None]
@@ -112,7 +116,7 @@ def softmax_backward_kernel(
     output_grad_batch_stride, output_grad_feat_stride,
     output_batch_stride, output_feat_stride,
     input_grad_batch_stride, input_grad_feat_stride,
-    log: tl.constexpr,
+    neg: tl.constexpr, log: tl.constexpr,
     BLOCK_SIZE_BATCH: tl.constexpr, BLOCK_SIZE_FEAT: tl.constexpr,
     ):
     """
@@ -139,6 +143,7 @@ def softmax_backward_kernel(
             input gradient container's batch dimension.
         input_grad_feat_stride: Stride necessary to jump one element along the
             input gradient container's feature dimension.
+        neg: Flag indicating if the input was negated to get softmin.
         log: Flag indicating if log of softmax was taken.
         BLOCK_SIZE_BATCH: Block size across the batch dimension.
         BLOCK_SIZE_FEAT: Block size across the feature dimension.
@@ -172,5 +177,5 @@ def softmax_backward_kernel(
         input_grad = output * (output_grad -
                                tl.sum(output_grad * output, axis=1)[:, None])
 
-    tl.store(input_grad_pointer, input_grad,
+    tl.store(input_grad_pointer, -input_grad if neg else input_grad,
              mask=batch_mask[:, None] & feat_mask[None, :])

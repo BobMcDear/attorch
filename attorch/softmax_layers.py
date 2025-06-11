@@ -23,6 +23,7 @@ class SoftmaxAutoGrad(torch.autograd.Function):
     def forward(
         ctx: Context,
         input: Tensor,
+        neg: bool,
         log: bool,
         ) -> Tensor:
         """
@@ -32,7 +33,8 @@ class SoftmaxAutoGrad(torch.autograd.Function):
             ctx: Context for variable storage.
             input: Input to normalize.
                 Can have arbitrary shape.
-            log: Flag for indicating if the log of softmax should be taken.
+            neg: Flag indicating if the input should be negated to get softmin.
+            log: Flag indicating if the log of softmax should be taken.
 
         Returns:
             Input normalized by softmax.
@@ -48,8 +50,9 @@ class SoftmaxAutoGrad(torch.autograd.Function):
         grid = lambda META: (cdiv(batch_dim, META['BLOCK_SIZE_BATCH']),)
         softmax_forward_kernel[grid](flattened_input, output, batch_dim, feat_dim,
                                      *flattened_input.stride(), *output.stride(),
-                                     log=log)
+                                     neg=neg, log=log)
 
+        ctx.neg = neg
         ctx.log = log
         if input.requires_grad:
             ctx.save_for_backward(output)
@@ -84,11 +87,11 @@ class SoftmaxAutoGrad(torch.autograd.Function):
                                       batch_dim, feat_dim,
                                       *flattened_output_grad.stride(),
                                       *output.stride(), *input_grad.stride(),
-                                      log=ctx.log)
+                                      neg=ctx.neg, log=ctx.log)
 
         # Pads output with None because a gradient is necessary for
         # all input arguments.
-        return input_grad.view_as(output_grad), None
+        return input_grad.view_as(output_grad), None, None
 
 
 class Softmax(nn.Softmax):
@@ -104,7 +107,7 @@ class Softmax(nn.Softmax):
         if self.dim != -1 and self.dim != input.ndim - 1:
             raise RuntimeError(f'Only softmax along the last dimension is supported.')
 
-        return SoftmaxAutoGrad.apply(input, False)
+        return SoftmaxAutoGrad.apply(input, False, False)
 
 
 class LogSoftmax(nn.LogSoftmax):
@@ -120,7 +123,7 @@ class LogSoftmax(nn.LogSoftmax):
         if self.dim != -1 and self.dim != input.ndim - 1:
             raise RuntimeError(f'Only softmax along the last dimension is supported.')
 
-        return SoftmaxAutoGrad.apply(input, True)
+        return SoftmaxAutoGrad.apply(input, False, True)
 
 
 class Softmin(nn.Softmin):
@@ -136,4 +139,4 @@ class Softmin(nn.Softmin):
         if self.dim != -1 and self.dim != input.ndim - 1:
             raise RuntimeError(f'Only softmin along the last dimension is supported.')
 
-        return SoftmaxAutoGrad.apply(-input, False)
+        return SoftmaxAutoGrad.apply(input, True, False)

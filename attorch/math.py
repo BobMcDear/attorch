@@ -62,6 +62,7 @@ def glu(input1, input2, param, act_func: tl.constexpr):
 
 @triton.jit
 def softmax(input,
+            neg: tl.constexpr,
             log: tl.constexpr):
     """
     Normalizes the input using softmax along the last dimension.
@@ -69,12 +70,15 @@ def softmax(input,
     Args:
         input: Input to normalize.
             The input must be of shape [BLOCK_SIZE1, BLOCK_SIZE2].
-        log: Flag for indicating if the log of softmax should be taken.
+        neg: Flag indicating if the input should be negated to get softmin.
+        log: Flag indicating if the log of softmax should be taken.
 
     Returns:
         Input normalized by softmax.
     """
     input = input.to(tl.float32)
+    if neg:
+        input = -input
 
     input = input - tl.max(input, axis=1)[:, None]
     numerator = tl.exp(input)
