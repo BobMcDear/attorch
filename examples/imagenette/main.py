@@ -13,6 +13,7 @@ from typing import Callable, Tuple
 import torch
 from torch import nn
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
 from torchvision.datasets import Imagenette
@@ -94,8 +95,10 @@ def train(
         Total training and validation time.
     """
     model = model.to('cuda')
-    optim = AdamW(model.parameters(), lr=sqrt(batch_size / 32) * 4e-4)
+    optim = AdamW(model.parameters(), lr=1e-4)
     optim.zero_grad()
+    sched = OneCycleLR(optim, max_lr=sqrt(batch_size / 32) * 4e-4,
+                       steps_per_epoch=len(train_dl), epochs=epochs)
     scaler = torch.GradScaler('cuda')
 
     avg_meter = AvgMeter()
@@ -116,6 +119,7 @@ def train(
             scaler.scale(loss).backward()
             scaler.step(optim)
             scaler.update()
+            sched.step()
             optim.zero_grad()
 
             avg_meter.update(loss.item(), len(input))
