@@ -109,7 +109,10 @@ def train(
 
         model.train()
         avg_meter.reset()
-        for input, target in train_dl:
+        for ind, (input, target) in enumerate(train_dl):
+            if (ind + 1) % 5 == 0:
+                print(f'Training iteration {ind+1}/{len(train_dl)}', end='\r')
+
             input = input.to('cuda')
             target = target.to('cuda')
 
@@ -128,7 +131,10 @@ def train(
         model.eval()
         avg_meter.reset()
         with torch.no_grad():
-            for input, target in valid_dl:
+            for ind, (input, target) in enumerate(valid_dl):
+                if (ind + 1) % 5 == 0:
+                    print(f'Validation iteration {ind+1}/{len(valid_dl)}', end='\r')
+
                 input = input.to('cuda')
                 target = target.to('cuda')
 

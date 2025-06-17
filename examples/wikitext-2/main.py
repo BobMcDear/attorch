@@ -94,7 +94,10 @@ def train(
 
         model.train()
         avg_meter.reset()
-        for batch in train_dl:
+        for ind, batch in enumerate(train_dl):
+            if (ind + 1) % 5 == 0:
+                print(f'Training iteration {ind+1}/{len(train_dl)}', end='\r')
+
             input = batch['input_ids'].to('cuda')
 
             with torch.autocast('cuda'):
@@ -112,7 +115,10 @@ def train(
         model.eval()
         avg_meter.reset()
         with torch.no_grad():
-            for batch in valid_dl:
+            for ind, batch in enumerate(valid_dl):
+                if (ind + 1) % 5 == 0:
+                    print(f'Validation iteration {ind+1}/{len(valid_dl)}', end='\r')
+
                 input = batch['input_ids'].to('cuda')
 
                 with torch.autocast('cuda'):
