@@ -118,4 +118,12 @@ def assert_close(
             Otherwise, it is selected according to the tensors' dtypes.
     """
     for pair in tensor_pairs:
-        torch.testing.assert_close(*pair, rtol=rtol, atol=atol, equal_nan=True)
+        try:
+            torch.testing.assert_close(*pair, rtol=rtol, atol=atol, equal_nan=True)
+
+        except AssertionError as error:
+            sum_diffs = torch.abs(pair[0] - pair[1]).sum()
+            elems = pair[0].numel()
+            raise RuntimeError(f'Tensors not equal; '
+                               f'average difference per element is {sum_diffs / elems}. '
+                               f'Original error: {error}')
