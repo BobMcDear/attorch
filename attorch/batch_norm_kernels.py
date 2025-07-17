@@ -123,7 +123,7 @@ def batch_norm_forward_kernel(
         is_train: Flag indicating if the model is in training mode.
         add_pre_act: Flag for adding the residual to the pre-activation result.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
         save_pre_act: Flag for saving the pre-activation input.

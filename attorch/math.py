@@ -48,7 +48,7 @@ def glu(input1, input2, param, act_func: tl.constexpr):
             The second half must be of the same shape as the first half.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
         param: Parameter in the case of parameterized activation functions.

@@ -38,7 +38,7 @@ class GLUAutoGrad(torch.autograd.Function):
                 Can have arbitrary shape but dimension dim must be even.
             dim: Dimension over which to gate.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
                 'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
@@ -120,7 +120,7 @@ class GLU(nn.GLU):
     Args:
         dim: Dimension over which to gate.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
             'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'

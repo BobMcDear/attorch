@@ -156,6 +156,37 @@ def gelu_grad(input):
 
 
 @triton.jit
+def geluapprox(input):
+    """
+    Applies the tanh approximation of GELU to the input.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Input transformed by the tanh approximation of GELU.
+    """
+    cdf = 0.5 * (1 + tanh(0.7978845608 * input * (1 + 0.044715 * input * input)))
+    return cdf * input
+
+
+@triton.jit
+def geluapprox_grad(input):
+    """
+    Calculates the gradient of the tanh approximation of GELU.
+
+    Args:
+        input: Input. The input must be loaded and cannot be a pointer.
+
+    Returns:
+        Gradient of the tanh approximation of GELU.
+    """
+    tanh_res = tanh(0.7978845608 * input * (1 + 0.044715 * input * input))
+    sech_sq = 1 - tanh_res * tanh_res
+    return 0.5 * (1 + tanh_res + input * sech_sq * 0.7978845608 * (1 + 3 * 0.044715 * input * input))
+
+
+@triton.jit
 def silu(input):
     """
     Applies SiLU to the input.
@@ -610,7 +641,7 @@ def apply_act_func(input, drop_p, seed, offset, param,
         offset: Offset to generate the dropout mask for if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
@@ -638,6 +669,10 @@ def apply_act_func(input, drop_p, seed, offset, param,
     elif act_func == 'gelu':
         input = input.to(tl.float32)
         output = gelu(input)
+
+    elif act_func == 'geluapprox':
+        input = input.to(tl.float32)
+        output = geluapprox(input)
 
     elif act_func == 'silu':
         input = input.to(tl.float32)
@@ -712,7 +747,7 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
         offset: Offset to generate the dropout mask for if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
@@ -739,6 +774,10 @@ def apply_act_func_grad(output_grad, input, drop_p, seed, offset, param,
     elif act_func == 'gelu':
         input = input.to(tl.float32)
         output = gelu_grad(input)
+
+    elif act_func == 'geluapprox':
+        input = input.to(tl.float32)
+        output = geluapprox_grad(input)
 
     elif act_func == 'silu':
         input = input.to(tl.float32)
@@ -822,7 +861,7 @@ def act_func_forward_kernel(
         seed: Seed for generating the dropout mask if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
@@ -867,7 +906,7 @@ def act_func_backward_kernel(
         seed: Seed for generating the dropout mask if dropout is True.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.

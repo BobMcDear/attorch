@@ -34,7 +34,7 @@ def glu_forward_kernel(
         size: Number of elements in each half of the input.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', and 'hardshrink'.
         BLOCK_SIZE: Block size.
@@ -80,7 +80,7 @@ def glu_backward_kernel(
         size: Number of elements in each half of the input.
         param: Parameter in the case of parameterized activation functions.
         act_func: Name of activation function to apply.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu', 'elu', 'celu', 'hardshrink',
             and 'softshrink'.
         BLOCK_SIZE: Block size.

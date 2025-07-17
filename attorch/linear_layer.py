@@ -40,7 +40,7 @@ class LinearAutoGrad(torch.autograd.Function):
             bias: Optional additive bias vector, with None for no bias.
                 If provided, must be of shape [out_feat_dim].
             act_func: Name of activation function to apply, with None for identity.
-                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
                 'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
@@ -177,7 +177,7 @@ class Linear(nn.Linear):
         out_features: Number of output features.
         bias: Flag for additive bias.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
             'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'

@@ -38,7 +38,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
             input: Input to transform.
                 Can have arbitrary shape.
             act_func: Name of activation function to apply.
-                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
                 'elu_PARAM', 'celu_PARAM', and 'hardshrink_PARAM' where PARAM stands for the parameter in the
@@ -193,14 +193,24 @@ class GELU(nn.GELU):
     See also base class.
 
     Args:
+        approximate: GELU approximation algorithm to use.
+            Options are 'none' and 'tanh'.
         drop_p: Probability of dropping an element for dropout.
+
+    Raises:
+        RuntimeError: Approximation algorithm is invalid.
     """
-    def __init__(self, drop_p: float = 0.0) -> None:
-        super().__init__()
+    def __init__(self, approximate: str = 'none', drop_p: float = 0.0) -> None:
+        if approximate not in ['none', 'tanh']:
+            raise RuntimeError(f'Approximation algorithm {approximate} invalid.')
+
+        super().__init__(approximate=approximate)
         self.drop_p = drop_p
 
     def forward(self, input: Tensor) -> Tensor:
-        return ActFuncAutoGrad.apply(input, 'gelu', self.drop_p, self.training)
+        return ActFuncAutoGrad.apply(input,
+                                     'gelu' if self.approximate == 'none' else 'geluapprox',
+                                     self.drop_p, self.training)
 
 
 class SiLU(nn.SiLU):

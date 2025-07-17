@@ -80,7 +80,7 @@ class BatchNormAutoGrad(torch.autograd.Function):
                 is_train is also True.
             pre_act_add: Optional residual added to the pre-activation result.
             act_func: Name of activation function to apply, with None for identity.
-                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+                Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
                 'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
                 'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
                 'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
@@ -260,7 +260,7 @@ class BatchNorm1d(nn.BatchNorm1d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
             'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
@@ -315,7 +315,7 @@ class BatchNorm2d(nn.BatchNorm2d):
         track_running_stats: Flag for tracking running mean and variance if
             is_train is also True.
         act_func: Name of activation function to apply, with None for identity.
-            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'silu',
+            Options are 'sigmoid', 'logsigmoid', 'tanh', 'relu', 'gelu', 'geluapprox', 'silu',
             'relu6', 'hardsigmoid', 'hardtanh', 'hardswish', 'selu', 'mish',
             'softplus', 'softsign', 'tanhshrink', 'leaky_relu_PARAM',
             'elu_PARAM', 'celu_PARAM', 'hardshrink_PARAM', and 'softshrink_PARAM'
