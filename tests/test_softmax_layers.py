@@ -17,7 +17,11 @@ def test_softmax_layers(
     softmax: str,
     input_dtype: bool,
     amp: bool,
+    subset: bool,
     ) -> None:
+    if subset and (shape not in default_shapes(subset=True)):
+        return
+
     if input_dtype is torch.float16 and not amp:
         return
 

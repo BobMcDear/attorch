@@ -9,7 +9,10 @@ from .utils import assert_close, create_input, create_input_like, default_shapes
 
 @pytest.mark.parametrize('shape', default_shapes())
 @pytest.mark.parametrize('drop_p', [0.0, 0.15, 0.3, 0.5, 0.75, 0.9, 1.0])
-def test_dropout_layer(shape: Tuple[int, ...], drop_p: float) -> None:
+def test_dropout_layer(shape: Tuple[int, ...], drop_p: float, subset: bool) -> None:
+    if subset and (shape not in default_shapes(subset=True)):
+        return
+
     input = create_input(shape)
     dropout = attorch.Dropout(drop_p)
     output = dropout(input)

@@ -31,7 +31,11 @@ def test_batch_norm_layer(
     act_func: Optional[str],
     input_dtype: bool,
     amp: bool,
+    subset: bool,
     ) -> None:
+    if subset and (shape not in default_shapes(subset=True)):
+        return
+
     if shape[0] == 1 or (input_dtype is torch.float16 and not amp):
         return
 

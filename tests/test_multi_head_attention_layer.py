@@ -24,7 +24,11 @@ def test_multi_head_attention_layer(
     causal: bool,
     input_dtype: bool,
     amp: bool,
+    subset: bool,
     ) -> None:
+    if subset and (shape not in default_shapes(subset=True)):
+        return
+
     if (input_dtype is torch.float16 and not amp) or (shape[-1] % num_heads != 0):
         return
 

@@ -11,43 +11,58 @@ from torch import Tensor
 from attorch.types import Device
 
 
-def default_shapes(min_dim: int = 0, max_dim: int = 4) -> List[Tuple[int, ...]]:
+def default_shapes(
+    min_dim: int = 0,
+    max_dim: int = 4,
+    subset: bool = False,
+    ) -> List[Tuple[int, ...]]:
     """
     Returns typical data shapes for testing.
 
     Args:
         min_dim: Minimum dimensionality of the shapes returned.
         max_dim: Maximum dimensionality of the shapes returned.
+        subset: Returns a subset of data shapes, useful for rapid testing.
     """
-    shapes = [(96,),
-              (128,),
-              (196,),
-              (384,),
-              (768,),
-              (1024,),
-              (3200,),
-              (4800,),
-              (8000,),
-              (12288,),
-              (1, 8000),
-              (4, 2000),
-              (8, 1024),
-              (32, 1024),
-              (128, 1024),
-              (2048, 768),
-              (6144, 256),
-              (8096, 32),
-              (12288, 1),
-              (1, 1024, 3072),
-              (8, 960, 196),
-              (64, 768, 128),
-              (128, 960, 196),
-              (2048, 64, 16),
-              (1, 3, 224, 224),
-              (8, 3, 224, 224),
-              (64, 64, 56, 56),
-              (256, 128, 28, 28),
-              (256, 2048, 7, 7)]
+    if subset:
+        shapes = [(96,),
+                  (768,),
+                  (4, 2000),
+                  (8, 1024),
+                  (8, 960, 196),
+                  (64, 768, 128),
+                  (64, 64, 56, 56),
+                  (256, 128, 28, 28)]
+    else:
+        shapes = [(96,),
+                  (128,),
+                  (196,),
+                  (384,),
+                  (768,),
+                  (1024,),
+                  (3200,),
+                  (4800,),
+                  (8000,),
+                  (12288,),
+                  (1, 8000),
+                  (4, 2000),
+                  (8, 1024),
+                  (32, 1024),
+                  (128, 1024),
+                  (2048, 768),
+                  (6144, 256),
+                  (8096, 32),
+                  (12288, 1),
+                  (1, 1024, 3072),
+                  (8, 960, 196),
+                  (64, 768, 128),
+                  (128, 960, 196),
+                  (2048, 64, 16),
+                  (1, 3, 224, 224),
+                  (8, 3, 224, 224),
+                  (64, 64, 56, 56),
+                  (256, 128, 28, 28),
+                  (256, 2048, 7, 7)]
     return list(filter(lambda shape: min_dim <= len(shape) <= max_dim, shapes))
 
 
