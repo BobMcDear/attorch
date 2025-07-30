@@ -80,6 +80,8 @@ lin = nn.Linear(10, 20) # Uses attorch's linear layer
 gap = nn.AdaptiveAvgPool2d(1) # Uses PyTorch's global pooling since GAP is not available in attorch
 ```
 
+Even though attorch implement convolutional and pooling layers, the performance of these modules is extremely slow compared to PyTorch. Therefore, ```attorch.nn``` exposes PyTorch's, and not attorch's, convolutions and pools.
+
 ## Tests
 
 Each module can be tested against its PyTorch counterpart to ensure correctness. These tests are included under ```tests/``` and can be executed using ```pytest```. A switch, `--subset`, is provided that runs the tests on a smaller subset of data shapes for faster yet less thorough evaluation. It should be noted that some tests may fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
