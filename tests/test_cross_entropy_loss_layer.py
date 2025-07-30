@@ -8,29 +8,29 @@ import attorch
 from .utils import assert_close, create_input, default_shapes
 
 
-@pytest.mark.parametrize('input_shape', default_shapes(min_dim=2, max_dim=2))
+@pytest.mark.parametrize('shape', default_shapes(min_dim=2, max_dim=2))
 @pytest.mark.parametrize('weighted', [False, True])
 @pytest.mark.parametrize('input_dtype', [torch.float32, torch.float16])
 @pytest.mark.parametrize('amp', [False, True])
 def test_cross_entropy_loss_layer(
-    input_shape: Tuple[int, ...],
+    shape: Tuple[int, ...],
     weighted: bool,
     input_dtype: bool,
     amp: bool,
     subset: bool,
     ) -> None:
-    if subset and (input_shape not in default_shapes(subset=True)):
+    if subset and (shape not in default_shapes(subset=True)):
         return
 
     if input_dtype is torch.float16 and not amp:
         return
 
-    attorch_input = create_input(input_shape, dtype=input_dtype)
-    pytorch_input = create_input(input_shape, dtype=input_dtype)
-    target = torch.randint(0, input_shape[1],
-                           size=(input_shape[0],),
+    attorch_input = create_input(shape, dtype=input_dtype)
+    pytorch_input = create_input(shape, dtype=input_dtype)
+    target = torch.randint(0, shape[1],
+                           size=(shape[0],),
                            device='cuda')
-    weight = (torch.randn(input_shape[1], device='cuda')
+    weight = (torch.randn(shape[1], device='cuda')
               if weighted else None)
 
     attorch_loss = attorch.CrossEntropyLoss(weight=weight)
