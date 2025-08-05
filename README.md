@@ -11,7 +11,7 @@
 
 attorch is a subset of PyTorch's [```nn```](https://pytorch.org/docs/stable/nn.html) module, written purely in Python using OpenAI's [Triton](https://github.com/openai/triton). Its goal is to be an easily hackable, self-contained, and readable collection of neural network modules whilst maintaining or improving upon the efficiency of PyTorch. In other words, it intends to be a forkable project endowed with a simple, intuitive design that can serve as an accessible starting point for those who are seeking to develop custom deep learning operations but are not satisfied with the speed of a pure PyTorch implementation and do not have the technical expertise or resources to write CUDA kernels.
 
-There already exist a number of wonderful PyTorch-like frameworks powered by Triton, including [kernl](https://github.com/ELS-RD/kernl/tree/main), [xFormers](https://github.com/facebookresearch/xformers), [Unsloth](https://github.com/unslothai/unsloth), and [```fla```](https://github.com/sustcsonglin/flash-linear-attention), but most concentrate mainly on Transformers and NLP applications, whereas attorch aims to be more inclusive by also presenting a variety of layers pertaining to areas besides NLP such as computer vision. Moreover, attorch is not an inference-only package and fully supports both forward and backward passes, meaning it can be used during training as well as inference, though its performance for the latter is generally not on par with dedicated inference engines.
+There already exist a number of wonderful PyTorch-like frameworks powered by Triton, including [kernl](https://github.com/ELS-RD/kernl/tree/main), [xFormers](https://github.com/facebookresearch/xformers), [Unsloth](https://github.com/unslothai/unsloth), and [```fla```](https://github.com/sustcsonglin/flash-linear-attention), but most concentrate mainly on Transformers and NLP applications, whereas attorch aims to be more inclusive by also presenting a variety of layers pertaining to areas beyond NLP, such as computer vision. Moreover, attorch is not an inference-only package and fully supports both forward and backward passes, meaning it can be used during training as well as inference, though its performance for the latter is generally not on par with dedicated inference engines.
 
 ## Installation
 
@@ -19,7 +19,7 @@ The only dependencies of attorch are ```torch==2.4.0``` and ```triton==3.0.0```.
 
 ## Layers
 
-Currently implemented layers, with automatic mixed precision (AMP) support, are,
+Currently implemented layers, with automatic mixed precision (AMP) support, are:
 
 * ```attorch.Conv1d```: 1D-convolves over the input using weights, optionally adding bias.
 * ```attorch.Conv2d```: 2D-convolves over the input using weights, optionally adding bias.
@@ -58,8 +58,8 @@ Currently implemented layers, with automatic mixed precision (AMP) support, are,
 * ```attorch.Dropout```: Randomly zeroes elements in the input during training.
 * ```attorch.L1Loss```: Measures the L1 error (mean absolute error) between the input and target.
 * ```attorch.MSELoss```: Measures the squared L2 error (mean squared error) between the input and target.
-* ```attorch.CrossEntropyLoss```: Measures the mean cross entropy loss between the input and target, with optional reweighing of each class.
-* ```attorch.NLLLoss```: Measures the negative log likelihood loss between the input and target, with optional reweighing of each class.
+* ```attorch.CrossEntropyLoss```: Measures the mean cross entropy loss between the input and target, with optional reweighting of each class.
+* ```attorch.NLLLoss```: Measures the negative log likelihood loss between the input and target, with optional reweighting of each class.
 * ```attorch.HuberLoss```: Measures the Huber loss between the input and target.
 * ```attorch.SmoothL1Loss```: Measures the smooth L1 error between the input and target.
 
@@ -70,7 +70,7 @@ Triton kernels are generally composed of two parts: One handles the loading and 
 
 ## PyTorch Fallback
 
-To enable easier integration of attorch and PyTorch layers, ```attorch.nn``` is offered, which provides an interface to attorch's modules with PyTorch fallback should a desired layer not be available, as seen below.
+To enable easier integration of attorch and PyTorch layers, ```attorch.nn``` is offered, which provides an interface to attorch's modules with PyTorch fallback should a desired layer not be available, as seen below:
 
 ```python
 from attorch import nn
@@ -80,7 +80,7 @@ lin = nn.Linear(10, 20) # Uses attorch's linear layer
 gap = nn.AdaptiveAvgPool2d(1) # Uses PyTorch's global pooling since GAP is not available in attorch
 ```
 
-Even though attorch implement convolutional and pooling layers, the performance of these modules is extremely slow compared to PyTorch. Therefore, ```attorch.nn``` exposes PyTorch's, and not attorch's, convolutions and pools.
+Even though attorch comes with convolutional and pooling layers, the performance of these modules is extremely slow compared to PyTorch. Therefore, ```attorch.nn``` exposes PyTorch's, and not attorch's, convolutions and pools.
 
 ## Tests
 
