@@ -69,6 +69,41 @@ class ConvBNReLU(nn.Module):
         return output
 
 
+class BasicBlock(nn.Module):
+    """
+    Passes the input through a residual basic block.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        in_dim: Number of input channels.
+        out_dim: Number of output channels.
+        stride: Stride of the first convolution.
+    """
+    def __init__(
+        self,
+        use_attorch: bool,
+        in_dim: int,
+        out_dim: int,
+        stride: int = 1,
+        ) -> None:
+        super().__init__()
+        self.conv_bn_relu1 = ConvBNReLU(use_attorch, in_dim, out_dim,
+                                        kernel_size=3, stride=stride)
+        self.conv_bn_relu2 = ConvBNReLU(use_attorch, out_dim, out_dim,
+                                        kernel_size=3, relu=False)
+
+        self.downsample = nn.Identity()
+        if in_dim != out_dim or stride != 1:
+            self.downsample = ConvBNReLU(use_attorch, in_dim, out_dim,
+                                         kernel_size=1, stride=stride, relu=False)
+
+    def forward(self, input: Tensor) -> Tensor:
+        identity = self.downsample(input)
+        output = self.conv_bn_relu1(input)
+        output = self.conv_bn_relu2(output, identity)
+        return output
+
+
 class BottleneckBlock(nn.Module):
     """
     Passes the input through a residual bottleneck block.
@@ -113,28 +148,36 @@ def resnet_stage(
     use_attorch: bool,
     depth: int,
     in_dim: int,
-    bottleneck_dim: int,
+    out_dim: int,
     stride: int = 1,
     expansion_factor: int = 4,
-    ) -> nn.Sequential:
+    block_type: str = 'bottleneck',
+) -> nn.Sequential:
     """
-    Creates a ResNet stage consisting of bottleneck blocks.
+    Creates a ResNet stage consisting of either Basic or Bottleneck blocks.
 
     Args:
         use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
-        depth: Depth.
-        in_dim: Number of input channels to the first block.
-        bottleneck_dim: Number of bottleneck channels.
-        stride: Stride of the middle convolution of the first block.
-        expansion_factor: Factor by which the bottleneck dimension is expanded
-            to generate the output.
+        depth: Number of blocks in the stage.
+        in_dim: Input dimension to the first block.
+        out_dim: Output dimension of the block (for basic blocks) or bottleneck.
+        stride: Stride of the first block.
+        expansion_factor: Used only for bottleneck.
+        block_type: 'basic' or 'bottleneck'.
     """
     layer = nn.Sequential()
     for ind in range(depth):
-        layer.append(BottleneckBlock(use_attorch, in_dim, bottleneck_dim,
-                                     stride=stride if ind > 0 else 1,
-                                     expansion_factor=expansion_factor))
-        in_dim = expansion_factor * bottleneck_dim
+        curr_stride = stride if ind == 0 else 1
+
+        if block_type == 'basic':
+            layer.append(BasicBlock(use_attorch, in_dim, out_dim, stride=curr_stride))
+            in_dim = out_dim
+
+        else:
+            layer.append(BottleneckBlock(use_attorch, in_dim, out_dim, stride=curr_stride,
+                                         expansion_factor=expansion_factor))
+            in_dim = out_dim * expansion_factor
+
     return layer
 
 
@@ -147,28 +190,41 @@ class ResNet(nn.Module):
         use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
         depths: Depths of the network's 4 stages.
         num_classes: Number of output classes.
+        block_type: Type of residual block to use.
+            Options are 'basic' or 'bottleneck'.
     """
     def __init__(
         self,
         use_attorch: bool,
         depths: Tuple[int, int, int, int],
         num_classes: int = 1000,
+        block_type: str = 'bottleneck',
         ) -> None:
         assert len(depths) == 4, \
             f'ResNet consists of 4 stages, received {len(depths)} depths instead'
+        assert block_type in ('basic', 'bottleneck')
 
         super().__init__()
         backend = attorch if use_attorch else nn
+        self.block_type = block_type
+        self.expansion = 1 if block_type == 'basic' else 4
 
         self.stem = nn.Sequential(ConvBNReLU(use_attorch, 3, 64,
                                              kernel_size=7, stride=2),
                                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
-        self.stage1 = resnet_stage(use_attorch, depths[0], 64, 64)
-        self.stage2 = resnet_stage(use_attorch, depths[1], 256, 128, stride=2)
-        self.stage3 = resnet_stage(use_attorch, depths[1], 512, 256, stride=2)
-        self.stage4 = resnet_stage(use_attorch, depths[1], 1024, 512, stride=2)
+
+        self.stage1 = resnet_stage(use_attorch, depths[0], 64, 64,
+                                   block_type=block_type)
+        self.stage2 = resnet_stage(use_attorch, depths[1], 64 * self.expansion, 128,
+                                   stride=2, block_type=block_type)
+        self.stage3 = resnet_stage(use_attorch, depths[2], 128 * self.expansion, 256,
+                                   stride=2, block_type=block_type)
+        self.stage4 = resnet_stage(use_attorch, depths[3], 256 * self.expansion, 512,
+                                   stride=2, block_type=block_type)
+
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = backend.Linear(2048, num_classes)
+        self.fc = backend.Linear(512 * self.expansion, num_classes)
+
         self.loss_func = backend.CrossEntropyLoss()
 
     def forward(
@@ -187,6 +243,30 @@ class ResNet(nn.Module):
         output = self.fc(output)
 
         return output if target is None else self.loss_func(output, target)
+
+
+def resnet18(use_attorch: bool, num_classes: int = 1000) -> ResNet:
+    """
+    Returns a ResNet-18 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ResNet(use_attorch, depths=(2, 2, 2, 2),
+                  num_classes=num_classes, block_type='basic')
+
+
+def resnet34(use_attorch: bool, num_classes: int = 1000) -> ResNet:
+    """
+    Returns a ResNet-34 classifier with optional cross entropy loss.
+
+    Args:
+        use_attorch: Flag to use attorch in lieu of PyTorch as the backend.
+        num_classes: Number of output classes.
+    """
+    return ResNet(use_attorch, depths=(3, 4, 6, 3),
+                  num_classes=num_classes, block_type='basic')
 
 
 def resnet14(use_attorch: bool, num_classes: int = 1000) -> ResNet:
