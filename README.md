@@ -6,6 +6,7 @@
 • **[Math Functions](#math-functions)**<br>
 • **[PyTorch Fallback](#pytorch-fallback)**<br>
 • **[Tests](#tests)**<br>
+• **[Citations](#citations)**<br>
 
 ## Introduction
 
@@ -85,3 +86,34 @@ Even though attorch comes with convolutional and pooling layers, the performance
 ## Tests
 
 Each module can be tested against its PyTorch counterpart to ensure correctness. These tests are included under ```tests/``` and can be executed using ```pytest```. A switch, `--subset`, is provided that runs the tests on a smaller subset of data shapes for faster yet less thorough evaluation. It should be noted that some tests may fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
+
+## Citations
+
+```bibtex
+@inproceedings{tillet2019triton,
+  title={Triton: an intermediate language and compiler for tiled neural network computations},
+  author={Tillet, Philippe and Kung, Hsiang-Tsung and Cox, David},
+  booktitle={Proceedings of the 3rd ACM SIGPLAN International Workshop on Machine Learning and Programming Languages},
+  pages={10--19},
+  year={2019}
+}
+```
+
+```bibtex
+@Misc{xFormers2022,
+  author =       {Benjamin Lefaudeux and Francisco Massa and Diana Liskovich and Wenhan Xiong and Vittorio Caggiano and Sean Naren and Min Xu and Jieru Hu and Marta Tintore and Susan Zhang and Patrick Labatut and Daniel Haziza and Luca Wehrstedt and Jeremy Reizenstein and Grigory Sizov},
+  title =        {xFormers: A modular and hackable Transformer modelling library},
+  howpublished = {\url{https://github.com/facebookresearch/xformers}},
+  year =         {2022}
+}
+```
+
+```bibtex
+@software{yang2024fla,
+  title  = {FLA: A Triton-Based Library for Hardware-Efficient Implementations of Linear Attention Mechanism},
+  author = {Yang, Songlin and Zhang, Yu},
+  url    = {https://github.com/fla-org/flash-linear-attention},
+  month  = jan,
+  year   = {2024}
+}
+```
