@@ -6,6 +6,7 @@
 • **[Math Functions](#math-functions)**<br>
 • **[PyTorch Fallback](#pytorch-fallback)**<br>
 • **[Tests](#tests)**<br>
+• **[Examples](#examples)**<br>
 • **[Citations](#citations)**<br>
 
 ## Introduction
@@ -86,6 +87,10 @@ Even though attorch comes with convolutional and pooling layers, the performance
 ## Tests
 
 Each module can be tested against its PyTorch counterpart to ensure correctness. These tests are included under ```tests/``` and can be executed using ```pytest```. A switch, `--subset`, is provided that runs the tests on a smaller subset of data shapes for faster yet less thorough evaluation. It should be noted that some tests may fail owing to numerical precision issues, but in most practical use cases, that should not be a problem.
+
+## Examples
+
+[`examples/`](https://github.com/BobMcDear/attorch/tree/main/examples) contains a handful of common deep learning workflows implemented in both attorch and PyTorch. Although attorch can be used as drop-in replacements for `torch.nn`, some modules offer optional kernel fusion and therefore require additional arguments that are not compatible with their PyTorch analogs. Such distinctions are illustrated in these examples.
 
 ## Citations
 

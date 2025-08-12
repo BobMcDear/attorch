@@ -13,7 +13,7 @@ import torch
 from datasets import load_dataset
 from torch import nn
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, OneCycleLR
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
@@ -62,6 +62,7 @@ def train(
     model: nn.Module,
     train_dl: DataLoader,
     valid_dl: DataLoader,
+    scheduler: str = 'one-cycle',
     epochs: int = 10,
     batch_size: int = 32,
     ) -> float:
@@ -71,6 +72,8 @@ def train(
     Args:
         model: Model to train. Its forward pass must optionally accept return_loss
             to compute the loss.
+        scheduler: Learning rate scheduler.
+            Options are 'one-cycle' and 'cosine'.
         train_dl: Data loader for training.
         valid_dl: Data loader for validation.
         epochs: Number of epochs to train for.
@@ -82,9 +85,17 @@ def train(
     model = model.to('cuda')
     optim = AdamW(model.parameters(), lr=1e-4)
     optim.zero_grad()
-    sched = OneCycleLR(optim, max_lr=sqrt(batch_size / 32) * 4e-4,
-                       steps_per_epoch=len(train_dl), epochs=epochs)
     scaler = torch.GradScaler('cuda')
+
+    if scheduler == 'one-cycle':
+        sched = OneCycleLR(optim, max_lr=sqrt(batch_size / 32) * 4e-4,
+                           steps_per_epoch=len(train_dl), epochs=epochs)
+
+    elif scheduler == 'cosine':
+        sched = CosineAnnealingLR(optim, T_max=len(train_dl) * epochs)
+
+    else:
+        raise RuntimeError(f'Scheduler {scheduler} not supported.')
 
     avg_meter = AvgMeter()
     start = time.time()
@@ -131,6 +142,7 @@ def train(
 
 def main(
     model_cls: Callable,
+    scheduler: str = 'one-cycle',
     epochs: int = 10,
     batch_size: int = 32,
     seq_len: int = 512,
@@ -143,6 +155,8 @@ def main(
         model_cls: Model class to train, with a 'vocab_size' argument for
             specifying the vocabulary size and a 'max_seq_len' argument for
             specifying the maximum sequence length of the incoming inputs.
+        scheduler: Learning rate scheduler.
+            Options are 'one-cycle' and 'cosine'.
         epochs: Number of epochs to train for.
         batch_size: Batch size.
         seq_len: Sequence length.
@@ -169,7 +183,7 @@ def main(
     benchmark_fw_and_bw(model, input=input, return_loss=True)
 
     print('Total training and validation time: '
-          f'{train(model, train_dl, valid_dl, epochs, batch_size)}')
+          f'{train(model, train_dl, valid_dl, scheduler, epochs, batch_size)}')
 
 
 if __name__ == '__main__':
@@ -183,6 +197,11 @@ if __name__ == '__main__':
                         type=int,
                         default=1,
                         help='The depth and width of the model are calculated by dividing GPT2\'s original depth and width by this factor.')
+    parser.add_argument('--scheduler',
+                        type=str,
+                        default='one-cycle',
+                        choices=['one-cycle', 'cosine'],
+                        help='Learning rate scheduler.')
     parser.add_argument('--epochs',
                         type=int,
                         default=10,
@@ -203,10 +222,10 @@ if __name__ == '__main__':
 
     print('attorch run:')
     main(partial(locals()[args.model], use_attorch=True, downsize=args.downsize),
-         epochs=args.epochs, batch_size=args.batch_size,
+         scheduler=args.scheduler, epochs=args.epochs, batch_size=args.batch_size,
          seq_len=args.seq_len, num_workers=args.num_workers)
 
     print('PyTorch run:')
     main(partial(locals()[args.model], use_attorch=False, downsize=args.downsize),
-         epochs=args.epochs, batch_size=args.batch_size,
+         scheduler=args.scheduler, epochs=args.epochs, batch_size=args.batch_size,
          seq_len=args.seq_len, num_workers=args.num_workers)
