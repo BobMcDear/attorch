@@ -40,10 +40,9 @@ def get_output_dtype(
             and 'fp32' signifies autocasting to FP32 when AMP is enabled.
     """
     dtype = torch.get_autocast_dtype('cuda')
-    assert dtype, \
-        f'Only autocast to float16 is supported, received {dtype}'
 
     if torch.is_autocast_enabled():
+        assert dtype in [torch.float32, torch.float16], 'Only fp16 and fp32 casting are supported'
         if autocast is None:
             return input_dtype
 
