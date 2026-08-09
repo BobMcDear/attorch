@@ -116,7 +116,7 @@ class PLossAutoGrad(torch.autograd.Function):
 
         # Pads output with None because a gradient is necessary for
         # all input arguments.
-        return input_grad.view_as(input), target_grad.view_as(input), None, None
+        return input_grad.view_as(input), target_grad.view_as(input), None, None, None
 
 
 class L1Loss(nn.L1Loss):
