@@ -53,7 +53,7 @@ def p_loss_forward_kernel(
     diff = input - target
 
     if p_loss == 0:
-        error = tl.where(diff < param, 0.5 * diff * diff / param, tl.abs(diff) - 0.5 * param)
+        error = tl.where(tl.abs(diff) < param, 0.5 * diff * diff / param, tl.abs(diff) - 0.5 * param)
 
     elif p_loss == 1:
         error = tl.abs(diff)
@@ -62,7 +62,7 @@ def p_loss_forward_kernel(
         error = diff * diff
 
     elif p_loss == 3:
-        error = tl.where(diff < param, 0.5 * diff * diff, param * (tl.abs(diff) - 0.5 * param))
+        error = tl.where(tl.abs(diff) < param, 0.5 * diff * diff, param * (tl.abs(diff) - 0.5 * param))
 
     if reduction == 'none':
         tl.store(output_pointer + offset, error, mask=mask)
@@ -124,7 +124,7 @@ def p_loss_backward_kernel(
     output_grad = tl.load(output_grad_pointer, mask=output_grad_mask).to(tl.float32)
 
     if p_loss == 0:
-        input_grad = tl.where(diff < param, diff / param, tl.where(0 <= diff, 1, -1))
+        input_grad = tl.where(tl.abs(diff) < param, diff / param, tl.where(0 <= diff, 1, -1))
 
     elif p_loss == 1:
         input_grad = tl.where(0 <= diff, 1, -1)
@@ -133,7 +133,7 @@ def p_loss_backward_kernel(
         input_grad = 2 * diff
 
     elif p_loss == 3:
-        input_grad = tl.where(diff < param, diff, param * tl.where(0 <= diff, 1, -1))
+        input_grad = tl.where(tl.abs(diff) < param, diff, param * tl.where(0 <= diff, 1, -1))
 
     if reduction == 'mean':
         input_grad /= size
