@@ -106,7 +106,7 @@ class RMSNormAutoGrad(torch.autograd.Function):
         if scale_by_weight:
             BLOCK_SIZE_BATCH = BLOCK_SIZE_BATCH_heuristic({'batch_dim': batch_dim,
                                                            'feat_dim': feat_dim})
-            out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
+            out_batch_dim = cdiv(batch_dim, BLOCK_SIZE_BATCH)
 
             weight_grad = torch.empty((out_batch_dim, feat_dim),
                                       device=flattened_input.device)
