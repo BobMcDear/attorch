@@ -57,3 +57,44 @@ def test_rms_norm_layer(
     assert_close((attorch_input.grad, pytorch_input.grad),
                  weight_grad_pair,
                  rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize('shape', [(2048, 2), (2049, 2), (4097, 4)])
+@pytest.mark.parametrize('elementwise_affine', [False, True])
+def test_rms_norm_layer_multiple_rows_per_program(
+    shape: Tuple[int, ...],
+    elementwise_affine: bool,
+    ) -> None:
+    # A narrow feature dimension with a large batch makes BLOCK_SIZE_BATCH
+    # exceed 1, and the batch dimensions above are deliberately not all
+    # divisible by it. default_shapes has no shape combining the two.
+    attorch_input = create_input(shape)
+    pytorch_input = create_input(shape)
+
+    attorch_rms_norm = attorch.RMSNorm(shape[-1],
+                                       elementwise_affine=elementwise_affine)
+    pytorch_rms_norm = nn.RMSNorm(shape[-1],
+                                  elementwise_affine=elementwise_affine,
+                                  device='cuda')
+
+    if elementwise_affine:
+        torch.manual_seed(0)
+        init.normal_(attorch_rms_norm.weight)
+
+        torch.manual_seed(0)
+        init.normal_(pytorch_rms_norm.weight)
+
+    attorch_output = attorch_rms_norm(attorch_input)
+    pytorch_output = pytorch_rms_norm(pytorch_input)
+
+    assert_close((attorch_output, pytorch_output),
+                 rtol=1e-3, atol=1e-3)
+
+    attorch_output.backward(create_input_like(attorch_output))
+    pytorch_output.backward(create_input_like(pytorch_output))
+
+    weight_grad_pair = ((attorch_rms_norm.weight.grad, pytorch_rms_norm.weight.grad)
+                        if elementwise_affine else (None, None))
+    assert_close((attorch_input.grad, pytorch_input.grad),
+                 weight_grad_pair,
+                 rtol=1e-3, atol=1e-3)
