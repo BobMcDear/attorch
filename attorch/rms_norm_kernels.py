@@ -177,7 +177,7 @@ def rms_norm_backward_kernel(
     else:
         weight_output_grad_prod = output_grad
 
-    term1 = input * tl.sum(input * weight_output_grad_prod, axis=1)
+    term1 = input * tl.sum(input * weight_output_grad_prod, axis=1)[:, None]
     term2 = inv_rms[:, None] * inv_rms[:, None]
     input_grad = (inv_rms[:, None] *
                   (weight_output_grad_prod - term1 * term2 / feat_dim))
