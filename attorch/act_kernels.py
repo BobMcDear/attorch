@@ -324,7 +324,7 @@ def hardswish_grad(input):
     Returns:
         Gradient of hard Swish.
     """
-    return (relu6(input + 3) + input * relu6_grad(input + 3)) / 6
+    return tl.where(input < -3, 0, tl.where(input <= 3, input / 3 + 0.5, 1))
 
 
 @triton.jit
@@ -579,7 +579,7 @@ def hardshrink(input, lambd):
     Returns:
         Input transformed by hard shrink.
     """
-    return tl.where(tl.abs(input) < lambd, 0, input)
+    return tl.where(tl.abs(input) <= lambd, 0, input)
 
 
 @triton.jit
@@ -594,7 +594,7 @@ def hardshrink_grad(input, lambd):
     Returns:
         Gradient of hard shrink.
     """
-    return tl.where(tl.abs(input) < lambd, 0, 1)
+    return tl.where(tl.abs(input) <= lambd, 0, 1)
 
 
 @triton.jit
@@ -625,7 +625,7 @@ def softshrink_grad(input, lambd):
     Returns:
         Gradient of softshrink.
     """
-    return tl.where(tl.abs(input) < lambd, 0, 1)
+    return tl.where(tl.abs(input) <= lambd, 0, 1)
 
 
 @triton.jit
