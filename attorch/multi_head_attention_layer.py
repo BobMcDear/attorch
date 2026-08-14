@@ -74,6 +74,8 @@ class MultiheadAttention(nn.MultiheadAttention):
         device: Device = 'cuda',
         dtype: torch.dtype = torch.float32,
         ) -> None:
+        raise RuntimeError('The attention module in attorch is currently deprecated to investigate an ongoing issue. Please use PyTorch instead.')
+
         if dropout > 0.0:
             raise RuntimeError('Dropout on the attention scores is not supported.')
 
