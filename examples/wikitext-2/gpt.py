@@ -63,8 +63,7 @@ class TransformerBlock(nn.Module):
         backend = attorch if use_attorch else nn
 
         self.ln1 = backend.LayerNorm(dim)
-        self.attn = backend.MultiheadAttention(dim, num_heads,
-                                               batch_first=True)
+        self.attn = nn.MultiheadAttention(dim, num_heads, batch_first=True)
 
         self.ln2 = backend.LayerNorm(dim)
         self.mlp = MLP(use_attorch, dim, 4 * dim)
