@@ -48,3 +48,22 @@ def test_p_loss_layers(
     assert_close((attorch_input.grad, pytorch_input.grad),
                  (attorch_target.grad, pytorch_target.grad),
                  rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
+@pytest.mark.parametrize('mixed', [False, True])
+def test_l1_zero_residual_gradient(reduction, mixed):
+    values = [0., -0., -2., 2., 0., -1., 1., 0.] if mixed else [0.] * 8
+    x = torch.tensor(values, device='cuda', requires_grad=True)
+    target = torch.zeros_like(x, requires_grad=True)
+    ref_x = x.detach().clone().requires_grad_()
+    ref_target = target.detach().clone().requires_grad_()
+    actual = attorch.L1Loss(reduction=reduction)(x, target)
+    expected = nn.L1Loss(reduction=reduction)(ref_x, ref_target)
+    upstream = (torch.arange(1, 9, device='cuda', dtype=x.dtype)
+                if reduction == 'none' else torch.tensor(.5, device='cuda'))
+    actual.backward(upstream)
+    expected.backward(upstream)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    torch.testing.assert_close(x.grad, ref_x.grad, rtol=0, atol=0)
+    torch.testing.assert_close(target.grad, ref_target.grad, rtol=0, atol=0)

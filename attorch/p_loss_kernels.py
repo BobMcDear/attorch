@@ -127,7 +127,7 @@ def p_loss_backward_kernel(
         input_grad = tl.where(tl.abs(diff) < param, diff / param, tl.where(0 <= diff, 1, -1))
 
     elif p_loss == 1:
-        input_grad = tl.where(0 <= diff, 1, -1)
+        input_grad = tl.where(diff == 0, 0, tl.where(0 <= diff, 1, -1))
 
     elif p_loss == 2:
         input_grad = 2 * diff
