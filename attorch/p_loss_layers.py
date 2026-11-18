@@ -51,6 +51,8 @@ class PLossAutoGrad(torch.autograd.Function):
         assert input.shape == target.shape, \
             f'Input shape {input.shape} and target shape {target.shape} not equal'
 
+        input = input.contiguous()
+        target = target.contiguous()
         output_dtype = get_output_dtype(input.dtype, autocast='fp32')
 
         ctx.p_loss = p_loss
@@ -101,7 +103,7 @@ class PLossAutoGrad(torch.autograd.Function):
         (input, target) = ctx.saved_tensors
         flattened_input = input.flatten()
         flattened_target = target.flatten()
-        output_grad = output_grad.flatten()
+        output_grad = output_grad.contiguous().flatten()
 
         size = len(flattened_input)
         input_grad = torch.empty_like(flattened_input, dtype=ctx.output_dtype)

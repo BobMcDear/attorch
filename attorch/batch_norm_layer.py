@@ -91,6 +91,19 @@ class BatchNormAutoGrad(torch.autograd.Function):
         Returns:
             Batch-normalized input, potentially with fused activation and added residual.
         """
+        add_pre_act = pre_act_add is not None
+        pre_act_add = (pre_act_add if add_pre_act else
+                       torch.empty((1, 1, 1), device='cuda'))
+        affine = weight is not None and bias is not None
+        requires_grad = (input.requires_grad or
+                         pre_act_add.requires_grad or
+                         (affine and weight.requires_grad) or
+                         (affine and bias.requires_grad))
+
+        if not training:
+            assert not requires_grad, 'Evaluation mode can be activated if and only if gradients are turned off.'
+
+
         param = None
         if act_func is not None and '_' in act_func:
             comps = act_func.split('_')
@@ -99,10 +112,6 @@ class BatchNormAutoGrad(torch.autograd.Function):
 
         ctx.param = param
         ctx.act_func = act_func
-
-        add_pre_act = pre_act_add is not None
-        pre_act_add = (pre_act_add if add_pre_act else
-                       torch.empty((1, 1, 1), device='cuda'))
 
         input_3d = make_3d_for_bn(input)
         pre_act_add = make_3d_for_bn(pre_act_add)
@@ -113,11 +122,6 @@ class BatchNormAutoGrad(torch.autograd.Function):
             pre_act_add = pre_act_add.transpose(0, -1)
             transpose = True
 
-        affine = weight is not None and bias is not None
-        requires_grad = (input.requires_grad or
-                         pre_act_add.requires_grad or
-                         (affine and weight.requires_grad) or
-                         (affine and bias.requires_grad))
         save_pre_act = requires_grad and (act_func is not None)
 
         batch_dim, feat_dim, spatial_dim = input_3d.shape

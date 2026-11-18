@@ -50,6 +50,8 @@ class GLUAutoGrad(torch.autograd.Function):
             Input transformed by the gated linear unit
             with an arbitrary activation function.
         """
+        input = input.contiguous()
+
         param = None
         if '_' in act_func:
             comps = act_func.split('_')
@@ -98,6 +100,7 @@ class GLUAutoGrad(torch.autograd.Function):
         (input1, input2) = ctx.saved_tensors
         input1_grad = torch.empty_like(input1)
         input2_grad = torch.empty_like(input2)
+        output_grad = output_grad.contiguous()
 
         # Launches 1D grid where each program operates over
         # BLOCK_SIZE elements.

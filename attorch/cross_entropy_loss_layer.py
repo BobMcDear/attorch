@@ -53,8 +53,9 @@ class CrossEntropyLossAutoGrad(torch.autograd.Function):
         batch_dim, feat_dim = input.shape
         BLOCK_SIZE_BATCH = BLOCK_SIZE_BATCH_heuristic({'batch_dim': batch_dim,
                                                        'feat_dim': feat_dim})
-        out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
+        out_batch_dim = cdiv(batch_dim, BLOCK_SIZE_BATCH)
         weighted = weight is not None
+        target = target.contiguous()
 
         output_dtype = get_output_dtype(input.dtype, autocast='fp32')
         output = torch.empty(out_batch_dim,

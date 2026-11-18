@@ -63,7 +63,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
         batch_dim, _, spatial_dim = flattened_input.shape
         BLOCK_SIZE_BATCH = BLOCK_SIZE_BATCH_heuristic({'batch_dim': batch_dim,
                                                        'spatial_dim': spatial_dim})
-        out_batch_dim = batch_dim // BLOCK_SIZE_BATCH
+        out_batch_dim = cdiv(batch_dim, BLOCK_SIZE_BATCH)
 
         output_dtype = get_output_dtype(input.dtype, autocast='fp32')
         sum_weights = (torch.empty(out_batch_dim, dtype=torch.float32, device=input.device)
@@ -74,7 +74,7 @@ class NLLLossAutoGrad(torch.autograd.Function):
 
         # Launches 1D grid where each program operates over BLOCK_SIZE_BATCH rows.
         grid = lambda META: (cdiv(len(input), META['BLOCK_SIZE_BATCH']),)
-        nll_loss_forward_kernel[grid](input, target, weight, sum_weights, output,
+        nll_loss_forward_kernel[grid](flattened_input, flattened_target, weight, sum_weights, output,
                                       batch_dim, spatial_dim,
                                       *flattened_input.stride(),
                                       *flattened_target.stride(),

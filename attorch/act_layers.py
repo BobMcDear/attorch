@@ -53,6 +53,8 @@ class ActFuncAutoGrad(torch.autograd.Function):
             Input transformed by the desired activation function,
             potentially with fused dropout.
         """
+        input = input.contiguous()
+
         param = None
         if '_' in act_func:
             comps = act_func.split('_')
@@ -100,7 +102,7 @@ class ActFuncAutoGrad(torch.autograd.Function):
         """
         (input,) = ctx.saved_tensors
         flattened_input = input.flatten()
-        output_grad = output_grad.flatten()
+        output_grad = output_grad.contiguous().flatten()
 
         size = len(flattened_input)
         input_grad = torch.empty_like(flattened_input)

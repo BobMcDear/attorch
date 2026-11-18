@@ -73,7 +73,9 @@ def cross_entropy_loss_forward_kernel(
     pred = tl.load(pred_pointer, mask=batch_mask).to(tl.float32)
     mx = tl.max(input, axis=1)
     input -= mx[:, None]
+
     loss = tl.log(tl.sum(tl.exp(input), axis=1)) - pred + mx
+    loss = tl.where(batch_mask, loss, 0.0)
 
     if weighted:
         weight = tl.load(weight_pointer + target, mask=batch_mask).to(tl.float32)

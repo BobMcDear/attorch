@@ -53,7 +53,7 @@ class DropoutAutoGrad(torch.autograd.Function):
             ctx.drop_all = True
             return torch.zeros_like(input)
 
-        flattened_input = input.flatten()
+        flattened_input = input.contiguous().flatten()
         size = len(flattened_input)
         output = torch.empty_like(flattened_input)
 
@@ -93,7 +93,7 @@ class DropoutAutoGrad(torch.autograd.Function):
             return torch.zeros_like(output_grad), None, None
 
         orig_shape = output_grad.shape
-        output_grad = output_grad.flatten()
+        output_grad = output_grad.contiguous().flatten()
         size = len(output_grad)
         input_grad = torch.empty_like(output_grad)
 
